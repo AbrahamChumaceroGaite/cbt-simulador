@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  course      String
+  plant       String
+  code        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  simulations Simulation[]
+}
+
+model Simulation {
+  id          String   @id @default(cuid())
+  groupId     String
+  name        String
+  description String   @default("")
+  isDemo      Boolean  @default(false)
+  isLocked    Boolean  @default(false)
+
+  // Plant config
+  plantName       String  @default("")
+  initialHeight   Float   @default(2.0)
+  baseGrowth      Float   @default(0.30)
+  optimalTemp     Float   @default(18.0)
+  optimalHumidity Float   @default(65.0)
+  optimalLight    Float   @default(12.0)
+
+  // Official prediction (locked before planting)
+  officialPrediction Float?
+  predictionNote     String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  entries Entry[]
+}
+
+model Entry {
+  id           String   @id @default(cuid())
+  simulationId String
+  sessionNum   Int
+  date         DateTime @default(now())
+
+  // Before measuring
+  myPrediction Float?
+
+  // After measuring
+  realHeight   Float?
+  temperature  Float?
+  humidity     Float?
+  lightHours   Float?
+  note         String @default("")
+
+  createdAt DateTime @default(now())
+
+  simulation Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+}

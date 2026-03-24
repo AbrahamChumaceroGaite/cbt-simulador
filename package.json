@@ -8,7 +8,8 @@
     "start": "next start",
     "db:push": "npx prisma db push",
     "db:seed": "npx ts-node prisma/seed.ts",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",

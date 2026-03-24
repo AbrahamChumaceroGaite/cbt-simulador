@@ -12,7 +12,7 @@ import {
   Button, Card, CardContent, CardHeader, CardTitle, CardDescription,
   Badge, Input, Label, SliderField, Textarea, Separator, Modal
 } from '@/components/ui'
-import { cn, calcEffects, generateProjection, pct, round1 } from '@/lib/utils'
+import { cn, calcEffects, generateProjection, pct, round1, TARIJA_BY_MONTH } from '@/lib/utils'
 
 type Entry = {
   id: string; sessionNum: number; date: string
@@ -25,6 +25,7 @@ type Simulation = {
   initialHeight: number; baseGrowth: number
   optimalTemp: number; optimalHumidity: number; optimalLight: number
   officialPrediction: number | null; predictionNote: string
+  startMonth: number
   entries: Entry[]
   group: { id: string; name: string; plant: string }
 }
@@ -88,10 +89,13 @@ export default function SimulationPage({ params }: { params: { id: string; simId
     </div>
   )
 
+  // Build start date using the configured month (day 1 of that month, current year)
+  const startMonth = sim.startMonth ?? new Date().getMonth() + 1
+  const startDate = new Date(new Date().getFullYear(), startMonth - 1, 1)
   const projection = generateProjection(
     { initialHeight: sim.initialHeight, baseGrowth: sim.baseGrowth,
       optimalTemp: sim.optimalTemp, optimalHumidity: sim.optimalHumidity, optimalLight: sim.optimalLight },
-    new Date('2026-03-23'), 45
+    startDate, 45
   )
 
   return (
@@ -171,7 +175,7 @@ function OverviewTab({ sim, projection, onUpdate, onLock }: {
       <Card>
         <CardHeader>
           <CardTitle>Predicción del modelo al día 30</CardTitle>
-          <CardDescription>Condiciones estimadas de Tarija en abril (otoño)</CardDescription>
+          <CardDescription>Condiciones estimadas de Tarija para el mes de inicio del experimento</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-5xl font-bold text-white tabular-nums">
@@ -196,7 +200,7 @@ function OverviewTab({ sim, projection, onUpdate, onLock }: {
           </div>
 
           <div className="text-xs text-zinc-600 bg-zinc-800/40 rounded-lg p-3 leading-5">
-            Crecimiento diario en abril = {sim.baseGrowth} cm/día × {pct(effects.tempEffect)}% × {pct(effects.humEffect)}% × {pct(effects.lightEffect)}% ={' '}
+            Crecimiento diario = {sim.baseGrowth} cm/día × {pct(effects.tempEffect)}% × {pct(effects.humEffect)}% × {pct(effects.lightEffect)}% ={' '}
             <span className="text-zinc-400 font-mono">{round1(sim.baseGrowth * effects.tempEffect * effects.humEffect * effects.lightEffect)} cm/día</span>
           </div>
         </CardContent>
@@ -339,12 +343,15 @@ function DemoOverview({ sim, projection }: { sim: Simulation; projection: Return
   )
 }
 
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
 // ── CONFIG TAB ────────────────────────────────────────────────────────────────
 function ConfigTab({ sim, onUpdate }: { sim: Simulation; onUpdate: (p: Partial<Simulation>) => void }) {
   const [local, setLocal] = useState({
     initialHeight: sim.initialHeight, baseGrowth: sim.baseGrowth,
     optimalTemp: sim.optimalTemp, optimalHumidity: sim.optimalHumidity,
     optimalLight: sim.optimalLight, plantName: sim.plantName,
+    startMonth: sim.startMonth ?? (new Date().getMonth() + 1),
   })
   const [dirty, setDirty] = useState(false)
 
@@ -352,16 +359,12 @@ function ConfigTab({ sim, onUpdate }: { sim: Simulation; onUpdate: (p: Partial<S
     setLocal(p => ({ ...p, [k]: v })); setDirty(true)
   }
 
-  const cond = { temperature: local.optimalTemp, humidity: local.optimalHumidity, lightHours: local.optimalLight }
-  const effects = calcEffects({ ...local }, cond)
-  const dailyAtOptimal = local.baseGrowth
-  const day30 = round1(local.initialHeight + local.baseGrowth * 30)
-
-  // Current Tarija April conditions
-  const aprilCond = { temperature: 15.9, humidity: 65, lightHours: 11.5 }
-  const aprilEffects = calcEffects({ ...local }, aprilCond)
-  const aprilDaily = round1(local.baseGrowth * aprilEffects.tempEffect * aprilEffects.humEffect * aprilEffects.lightEffect)
-  const day30April = round1(local.initialHeight + aprilDaily * 30)
+  // Conditions for selected month vs optimal
+  const selectedCond = TARIJA_BY_MONTH[local.startMonth] ?? TARIJA_BY_MONTH[4]
+  const selectedEffects = calcEffects({ ...local }, selectedCond)
+  const selectedDaily = round1(local.baseGrowth * selectedEffects.tempEffect * selectedEffects.humEffect * selectedEffects.lightEffect)
+  const day30Selected = round1(local.initialHeight + selectedDaily * 30)
+  const day30Optimal = round1(local.initialHeight + local.baseGrowth * 30)
 
   return (
     <div className="space-y-4">
@@ -371,18 +374,65 @@ function ConfigTab({ sim, onUpdate }: { sim: Simulation; onUpdate: (p: Partial<S
         </div>
       )}
 
+      {/* Month selector */}
+      <Card className="border-sky-900/40 bg-sky-950/10">
+        <CardContent className="pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">Mes de inicio del experimento</p>
+              <p className="text-xs text-zinc-500 mt-0.5">El modelo usará el clima de Tarija para ese mes al calcular el pronóstico.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {MONTH_NAMES.map((name, i) => {
+              const m = i + 1
+              const cond = TARIJA_BY_MONTH[m]
+              return (
+                <button
+                  key={m}
+                  onClick={() => set('startMonth', m)}
+                  className={cn(
+                    'rounded-lg px-2 py-2 text-xs font-medium transition-all text-center',
+                    local.startMonth === m
+                      ? 'bg-sky-600 text-white'
+                      : 'bg-zinc-800/60 text-zinc-400 hover:bg-zinc-700/60'
+                  )}
+                >
+                  <span className="block">{name.slice(0,3)}</span>
+                  <span className="block text-[10px] opacity-60 mt-0.5">{cond.temperature}°</span>
+                </button>
+              )
+            })}
+          </div>
+          <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
+            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
+              <p className="text-zinc-500">Temperatura</p>
+              <p className="text-white font-mono font-bold">{selectedCond.temperature}°C</p>
+            </div>
+            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
+              <p className="text-zinc-500">Humedad</p>
+              <p className="text-white font-mono font-bold">{selectedCond.humidity}%</p>
+            </div>
+            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
+              <p className="text-zinc-500">Luz</p>
+              <p className="text-white font-mono font-bold">{selectedCond.lightHours}h</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Live preview */}
       <Card>
         <CardContent className="pt-4 grid grid-cols-2 gap-4">
           <div className="text-center bg-zinc-800/50 rounded-xl p-4">
             <p className="text-xs text-zinc-500 mb-1">Sin variables (base)</p>
-            <p className="text-3xl font-bold text-white">{day30}<span className="text-lg text-zinc-500"> cm</span></p>
+            <p className="text-3xl font-bold text-white">{day30Optimal}<span className="text-lg text-zinc-500"> cm</span></p>
             <p className="text-xs text-zinc-600 mt-1">al día 30 en óptimo</p>
           </div>
           <div className="text-center bg-zinc-800/50 rounded-xl p-4">
-            <p className="text-xs text-zinc-500 mb-1">Con otoño Tarija (abril)</p>
-            <p className="text-3xl font-bold text-emerald-400">{day30April}<span className="text-lg text-zinc-500"> cm</span></p>
-            <p className="text-xs text-zinc-600 mt-1">con condiciones reales</p>
+            <p className="text-xs text-zinc-500 mb-1">{MONTH_NAMES[local.startMonth-1]} · Tarija</p>
+            <p className="text-3xl font-bold text-emerald-400">{day30Selected}<span className="text-lg text-zinc-500"> cm</span></p>
+            <p className="text-xs text-zinc-600 mt-1">con clima del mes seleccionado</p>
           </div>
         </CardContent>
       </Card>
@@ -420,22 +470,22 @@ function ConfigTab({ sim, onUpdate }: { sim: Simulation; onUpdate: (p: Partial<S
             label="Temperatura óptima"
             value={local.optimalTemp} min={5} max={35} step={1} unit="°C"
             onChange={v => set('optimalTemp', v)}
-            effectPct={pct(aprilEffects.tempEffect)}
-            effectLabel={`Con 15.9°C (Tarija abril): ${pct(aprilEffects.tempEffect)}% del máximo. Si baja 10°C más: 0%.`}
+            effectPct={pct(selectedEffects.tempEffect)}
+            effectLabel={`Con ${selectedCond.temperature}°C (Tarija ${MONTH_NAMES[local.startMonth-1]}): ${pct(selectedEffects.tempEffect)}% del máximo.`}
           />
           <SliderField
             label="Humedad óptima"
             value={local.optimalHumidity} min={20} max={100} step={5} unit="%"
             onChange={v => set('optimalHumidity', v)}
-            effectPct={pct(aprilEffects.humEffect)}
-            effectLabel={`Con 65% de humedad: ${pct(aprilEffects.humEffect)}% del máximo.`}
+            effectPct={pct(selectedEffects.humEffect)}
+            effectLabel={`Con ${selectedCond.humidity}% de humedad: ${pct(selectedEffects.humEffect)}% del máximo.`}
           />
           <SliderField
             label="Horas de luz óptimas"
             value={local.optimalLight} min={4} max={16} step={0.5} unit="h/día"
             onChange={v => set('optimalLight', v)}
-            effectPct={pct(aprilEffects.lightEffect)}
-            effectLabel={`Con 11.5h de luz (Tarija abril): ${pct(aprilEffects.lightEffect)}% del máximo.`}
+            effectPct={pct(selectedEffects.lightEffect)}
+            effectLabel={`Con ${selectedCond.lightHours}h de luz: ${pct(selectedEffects.lightEffect)}% del máximo.`}
           />
         </CardContent>
       </Card>
@@ -471,7 +521,7 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
     setFormError('')
     setFormSession(entry
       ? { ...entry, sessionNum: entry.sessionNum }
-      : { sessionNum: nextSession, myPrediction: null, realHeight: null, temperature: null, humidity: null, lightHours: null, note: '' }
+      : { sessionNum: nextSession, myPrediction: null, realHeight: null, temperature: null, humidity: null, lightHours: null, note: '', date: new Date().toISOString().split('T')[0] }
     )
     setShowForm(true)
   }
@@ -495,7 +545,7 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full">
       {!sim.isDemo && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-zinc-500">{sim.entries.length} sesión{sim.entries.length !== 1 ? 'es' : ''} registradas</p>
@@ -514,17 +564,17 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden border-zinc-800">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left whitespace-nowrap">
+        <div className="w-full overflow-x-auto rounded-xl border border-zinc-800">
+            <table className="min-w-full text-sm text-left whitespace-nowrap">
               <thead className="text-xs text-zinc-400 bg-zinc-900/50 border-b border-zinc-800/60">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Sesión</th>
-                  <th className="px-4 py-3 font-medium flex items-center gap-1.5"><Settings className="w-3.5 h-3.5"/> Modelo Predice</th>
-                  <th className="px-4 py-3 font-medium text-amber-500">Tú Pronosticaste</th>
-                  <th className="px-4 py-3 font-medium text-emerald-400">Tamaño Real</th>
-                  <th className="px-4 py-3 font-medium">Clima (T/H/Lz)</th>
-                  <th className="px-4 py-3 font-medium">Nota / Diferencia</th>
+                  <th className="px-3 py-3 font-medium">#</th>
+                  <th className="px-3 py-3 font-medium">Fecha</th>
+                  <th className="px-3 py-3 font-medium text-zinc-300">Modelo</th>
+                  <th className="px-3 py-3 font-medium text-amber-500">Tu Pronóstico</th>
+                  <th className="px-3 py-3 font-medium text-emerald-400">Tamaño Real</th>
+                  <th className="px-3 py-3 font-medium">Clima (T/H/Lz)</th>
+                  <th className="px-3 py-3 font-medium">Dif / Nota</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
@@ -534,29 +584,32 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
                   return (
                     <tr 
                       key={entry.id} 
-                      className={cn('bg-zinc-950/50 hover:bg-zinc-800/40 transition-colors', !sim.isDemo && 'cursor-pointer')}
+                      className={cn('hover:bg-zinc-800/40 transition-colors', !sim.isDemo && 'cursor-pointer')}
                       onClick={() => !sim.isDemo && openForm(entry)}
                     >
-                      <td className="px-4 py-3">
-                        <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
+                      <td className="px-3 py-3">
+                        <div className="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
                           {entry.sessionNum}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-zinc-400">{modelH} cm</td>
-                      <td className="px-4 py-3 font-mono text-amber-200/50">{entry.myPrediction != null ? `${entry.myPrediction} cm` : '—'}</td>
-                      <td className="px-4 py-3 font-mono font-bold text-white">{entry.realHeight != null ? `${entry.realHeight} cm` : '—'}</td>
-                      <td className="px-4 py-3 text-xs text-zinc-500">
+                      <td className="px-3 py-3 text-xs text-zinc-500">
+                        {entry.date ? new Date(entry.date).toLocaleDateString('es-BO', { day: '2-digit', month: 'short' }) : '—'}
+                      </td>
+                      <td className="px-3 py-3 font-mono text-zinc-400">{modelH} cm</td>
+                      <td className="px-3 py-3 font-mono text-amber-300/70">{entry.myPrediction != null ? `${entry.myPrediction} cm` : '—'}</td>
+                      <td className="px-3 py-3 font-mono font-bold text-white">{entry.realHeight != null ? `${entry.realHeight} cm` : '—'}</td>
+                      <td className="px-3 py-3 text-xs text-zinc-500">
                         {entry.temperature ? `${entry.temperature}°` : '-'} / {entry.humidity ? `${entry.humidity}%` : '-'} / {entry.lightHours ? `${entry.lightHours}h` : '-'}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2">
                           {diff !== null && (
                             <span className={cn('text-xs font-mono font-medium', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-red-400' : 'text-zinc-500')}>
                               {diff > 0 ? '+' : ''}{diff}cm
                             </span>
                           )}
                           {entry.note && (
-                            <span className="text-xs text-zinc-500 truncate max-w-[100px] inline-block" title={entry.note}>{entry.note}</span>
+                            <span className="text-xs text-zinc-500 truncate max-w-[80px] inline-block" title={entry.note}>{entry.note}</span>
                           )}
                         </div>
                       </td>
@@ -566,8 +619,7 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
               </tbody>
             </table>
           </div>
-        </Card>
-      )}
+        )}
 
       {/* Entry form modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={`Registro de la Sesión ${formSession.sessionNum}`}>
@@ -591,13 +643,19 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
 
           <Separator className="bg-zinc-800/60" />
 
-          {/* Step B */}
+          {/* Step B: Date + real measurements */}
           <div className="space-y-3">
             <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-3 text-xs text-emerald-200/70">
               <p className="font-semibold text-emerald-500 mb-1">B) La medición real</p>
               <p>Mide la planta con regla y anota los datos reales de los sensores.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label>Fecha de la medición</Label>
+                <Input type="date"
+                  value={formSession.date ?? new Date().toISOString().split('T')[0]}
+                  onChange={e => setFormSession(p => ({ ...p, date: e.target.value }))} />
+              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label className="text-emerald-400">Tamaño Real (cm) *</Label>
                 <Input type="number" step="0.1" placeholder="Ej: 5.2"

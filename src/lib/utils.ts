@@ -44,7 +44,7 @@ export function calcHeightAtDay(params: GrowthParams, days: number, cond: DayCon
  * Generate projected height curve using Tarija seasonal averages.
  * Returns array of {day, height, tempEffect, lightEffect, humEffect}
  */
-const TARIJA_BY_MONTH: Record<number, DayConditions> = {
+export const TARIJA_BY_MONTH: Record<number, DayConditions> = {
   1:  { temperature: 19.2, humidity: 72, lightHours: 13.5 },
   2:  { temperature: 19.0, humidity: 74, lightHours: 13.1 },
   3:  { temperature: 17.8, humidity: 70, lightHours: 12.2 },

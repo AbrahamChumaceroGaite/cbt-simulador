@@ -38,6 +38,7 @@ model Simulation {
   // Official prediction (locked before planting)
   officialPrediction Float?
   predictionNote     String @default("")
+  startMonth         Int    @default(4)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

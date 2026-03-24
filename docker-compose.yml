@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/data/dev.db
+    volumes:
+      # Persist the SQLite database between container restarts
+      - db_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  db_data:

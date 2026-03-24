@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Settings, FlaskConical, BarChart3, TableProperties,
-  Lock, Unlock, Info, CheckCircle2, Plus, Save, Trash2, TrendingUp, Leaf
+  Lock, Unlock, Info, CheckCircle2, Plus, Save, Trash2, TrendingUp, Leaf, AlertCircle
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine
@@ -452,6 +452,7 @@ function ConfigTab({ sim, onUpdate }: { sim: Simulation; onUpdate: (p: Partial<S
 // ── DATA TAB ──────────────────────────────────────────────────────────────────
 function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void }) {
   const [showForm, setShowForm] = useState(false)
+  const [formError, setFormError] = useState('')
   const [formSession, setFormSession] = useState<Partial<Entry> & { sessionNum: number }>({ sessionNum: (sim.entries.length + 1) })
   const nextSession = sim.entries.length + 1
 
@@ -467,6 +468,7 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
   }
 
   function openForm(entry?: Entry) {
+    setFormError('')
     setFormSession(entry
       ? { ...entry, sessionNum: entry.sessionNum }
       : { sessionNum: nextSession, myPrediction: null, realHeight: null, temperature: null, humidity: null, lightHours: null, note: '' }
@@ -475,6 +477,19 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
   }
 
   async function handleSave() {
+    if (formSession.realHeight != null) {
+      const isEditing = sim.entries.some(e => e.id === formSession.id)
+      const previousEntries = sim.entries.filter(e => e.sessionNum < formSession.sessionNum && e.realHeight != null)
+      const lastEntry = previousEntries[previousEntries.length - 1]
+      const minHeight = lastEntry?.realHeight ?? sim.initialHeight
+      
+      if (formSession.realHeight < minHeight) {
+        setFormError(`La planta no puede encogerse. El tamaño real debe ser igual o mayor a ${minHeight} cm (tamaño anterior).`)
+        return
+      }
+    }
+    
+    setFormError('')
     await onSave(formSession)
     setShowForm(false)
   }
@@ -484,8 +499,8 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
       {!sim.isDemo && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-zinc-500">{sim.entries.length} sesión{sim.entries.length !== 1 ? 'es' : ''} registradas</p>
-          <Button size="sm" onClick={() => openForm()}>
-            <Plus className="w-3.5 h-3.5" /> Sesión {nextSession}
+          <Button size="sm" onClick={() => openForm()} className="bg-emerald-600 hover:bg-emerald-500 text-white">
+            <Plus className="w-4 h-4 mr-1" /> Sesión {nextSession}
           </Button>
         </div>
       )}
@@ -494,103 +509,143 @@ function DataTab({ sim, onSave }: { sim: Simulation; onSave: (e: any) => void })
         <Card>
           <CardContent className="py-12 text-center space-y-2">
             <FlaskConical className="w-10 h-10 text-zinc-700 mx-auto" />
-            <p className="text-sm text-zinc-500">Aún no hay registros</p>
-            <p className="text-xs text-zinc-700">Agrega la primera sesión después de plantar y medir tu planta.</p>
+            <p className="text-sm text-emerald-500 font-medium">Lista para registrar datos</p>
+            <p className="text-xs text-zinc-500">Haz clic en "Sesión 1" cuando midas tu planta por primera vez.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {sim.entries.map(entry => {
-            const modelH = modelHeight(entry.sessionNum)
-            const diff = entry.realHeight != null ? round1(entry.realHeight - modelH) : null
-            return (
-              <Card
-                key={entry.id}
-                className={cn('cursor-pointer hover:border-zinc-700 transition-colors', sim.isDemo && 'cursor-default')}
-                onClick={() => !sim.isDemo && openForm(entry)}
-              >
-                <CardContent className="pt-3 pb-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-400 flex-shrink-0">
-                      {entry.sessionNum}
-                    </div>
-                    <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                      <div>
-                        <span className="text-zinc-500 text-xs">Modelo: </span>
-                        <span className="text-zinc-300 font-mono">{modelH} cm</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500 text-xs">Real: </span>
-                        <span className="text-white font-mono font-medium">{entry.realHeight ?? '—'} cm</span>
-                      </div>
-                      {entry.temperature && (
-                        <div><span className="text-zinc-500 text-xs">Temp: </span><span className="text-zinc-300 font-mono">{entry.temperature}°C</span></div>
-                      )}
-                      {entry.humidity && (
-                        <div><span className="text-zinc-500 text-xs">Hum: </span><span className="text-zinc-300 font-mono">{entry.humidity}%</span></div>
-                      )}
-                      {entry.lightHours && (
-                        <div><span className="text-zinc-500 text-xs">Luz: </span><span className="text-zinc-300 font-mono">{entry.lightHours}h</span></div>
-                      )}
-                      {diff !== null && (
-                        <div>
-                          <span className="text-zinc-500 text-xs">Diferencia: </span>
-                          <span className={cn('font-mono', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-red-400' : 'text-zinc-400')}>
-                            {diff > 0 ? '+' : ''}{diff} cm
-                          </span>
+        <Card className="overflow-hidden border-zinc-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+              <thead className="text-xs text-zinc-400 bg-zinc-900/50 border-b border-zinc-800/60">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Sesión</th>
+                  <th className="px-4 py-3 font-medium flex items-center gap-1.5"><Settings className="w-3.5 h-3.5"/> Modelo Predice</th>
+                  <th className="px-4 py-3 font-medium text-amber-500">Tú Pronosticaste</th>
+                  <th className="px-4 py-3 font-medium text-emerald-400">Tamaño Real</th>
+                  <th className="px-4 py-3 font-medium">Clima (T/H/Lz)</th>
+                  <th className="px-4 py-3 font-medium">Nota / Diferencia</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {sim.entries.map(entry => {
+                  const modelH = modelHeight(entry.sessionNum)
+                  const diff = entry.realHeight != null ? round1(entry.realHeight - modelH) : null
+                  return (
+                    <tr 
+                      key={entry.id} 
+                      className={cn('bg-zinc-950/50 hover:bg-zinc-800/40 transition-colors', !sim.isDemo && 'cursor-pointer')}
+                      onClick={() => !sim.isDemo && openForm(entry)}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
+                          {entry.sessionNum}
                         </div>
-                      )}
-                    </div>
-                    {entry.note && (
-                      <div className="bg-zinc-800/60 rounded-lg px-2 py-1 text-xs text-zinc-500 max-w-20 text-center">{entry.note}</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-zinc-400">{modelH} cm</td>
+                      <td className="px-4 py-3 font-mono text-amber-200/50">{entry.myPrediction != null ? `${entry.myPrediction} cm` : '—'}</td>
+                      <td className="px-4 py-3 font-mono font-bold text-white">{entry.realHeight != null ? `${entry.realHeight} cm` : '—'}</td>
+                      <td className="px-4 py-3 text-xs text-zinc-500">
+                        {entry.temperature ? `${entry.temperature}°` : '-'} / {entry.humidity ? `${entry.humidity}%` : '-'} / {entry.lightHours ? `${entry.lightHours}h` : '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {diff !== null && (
+                            <span className={cn('text-xs font-mono font-medium', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-red-400' : 'text-zinc-500')}>
+                              {diff > 0 ? '+' : ''}{diff}cm
+                            </span>
+                          )}
+                          {entry.note && (
+                            <span className="text-xs text-zinc-500 truncate max-w-[100px] inline-block" title={entry.note}>{entry.note}</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Entry form modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={`Sesión ${formSession.sessionNum}`}>
-        <div className="space-y-4">
-          <div className="bg-zinc-800/60 rounded-lg p-3 text-xs text-zinc-400">
-            <p className="font-medium text-white mb-1">Antes de medir — tu predicción de hoy</p>
-            <p>¿Cuánto crees que medirá la planta hoy?</p>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={`Registro de la Sesión ${formSession.sessionNum}`}>
+        <div className="space-y-6">
+          {/* Step A */}
+          <div className="space-y-3">
+            <div className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3 text-xs text-amber-200/70">
+              <p className="font-semibold text-amber-500 mb-1">A) Tu pronóstico visual</p>
+              <p>Antes de usar la regla, ¿cuánto crees que mide la planta hoy?</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tu pronóstico (cm)</Label>
+              <Input type="number" step="0.1" value={formSession.myPrediction ?? ''}
+                onChange={e => {
+                  setFormError('')
+                  setFormSession(p => ({ ...p, myPrediction: parseFloat(e.target.value) || null }))
+                }}
+                placeholder="Ej: 4.5" className="border-amber-900/40 focus-visible:ring-amber-500/30" />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Mi predicción para hoy (cm)</Label>
-            <Input type="number" step="0.1" value={formSession.myPrediction ?? ''}
-              onChange={e => setFormSession(p => ({ ...p, myPrediction: parseFloat(e.target.value) || null }))}
-              placeholder="Ej: 4.5" />
-          </div>
-          <Separator />
-          <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Después de medir</p>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { key: 'realHeight', label: 'Altura real (cm)', placeholder: '5.2' },
-              { key: 'temperature', label: 'Temperatura °C', placeholder: '15.5' },
-              { key: 'humidity', label: 'Humedad %', placeholder: '64' },
-              { key: 'lightHours', label: 'Horas de luz', placeholder: '11' },
-            ].map(f => (
-              <div key={f.key} className="space-y-1.5">
-                <Label>{f.label}</Label>
-                <Input type="number" step="0.1" placeholder={f.placeholder}
-                  value={(formSession as any)[f.key] ?? ''}
-                  onChange={e => setFormSession(p => ({ ...p, [f.key]: parseFloat(e.target.value) || null }))} />
+
+          <Separator className="bg-zinc-800/60" />
+
+          {/* Step B */}
+          <div className="space-y-3">
+            <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-3 text-xs text-emerald-200/70">
+              <p className="font-semibold text-emerald-500 mb-1">B) La medición real</p>
+              <p>Mide la planta con regla y anota los datos reales de los sensores.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-emerald-400">Tamaño Real (cm) *</Label>
+                <Input type="number" step="0.1" placeholder="Ej: 5.2"
+                  value={formSession.realHeight ?? ''}
+                  onChange={e => {
+                    setFormError('')
+                    setFormSession(p => ({ ...p, realHeight: parseFloat(e.target.value) || null }))
+                  }} className="border-emerald-900/40 focus-visible:ring-emerald-500/30" />
               </div>
-            ))}
+              <div className="space-y-1.5">
+                <Label>Temperatura °C</Label>
+                <Input type="number" step="0.1" placeholder="Ej: 15.5"
+                  value={formSession.temperature ?? ''}
+                  onChange={e => setFormSession(p => ({ ...p, temperature: parseFloat(e.target.value) || null }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Humedad %</Label>
+                <Input type="number" step="1" placeholder="Ej: 64"
+                  value={formSession.humidity ?? ''}
+                  onChange={e => setFormSession(p => ({ ...p, humidity: parseFloat(e.target.value) || null }))} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>Horas de luz aprox.</Label>
+                <Input type="number" step="0.5" placeholder="Ej: 11"
+                  value={formSession.lightHours ?? ''}
+                  onChange={e => setFormSession(p => ({ ...p, lightHours: parseFloat(e.target.value) || null }))} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>Di en una palabra ¿por qué creció así?</Label>
+                <Input placeholder="Ej: frío, soleado, nublado, sequía..."
+                  value={formSession.note ?? ''}
+                  onChange={e => setFormSession(p => ({ ...p, note: e.target.value }))} />
+              </div>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Una palabra — ¿por qué crees que la diferencia fue así?</Label>
-            <Input placeholder="frío, soleado, nublado, sequía..."
-              value={formSession.note ?? ''}
-              onChange={e => setFormSession(p => ({ ...p, note: e.target.value }))} />
-          </div>
-          <div className="flex gap-2">
+
+          {formError && (
+            <div className="bg-red-950/30 border border-red-900/50 text-red-400 text-sm p-3 rounded-lg flex items-center">
+              <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-2">
             <Button variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancelar</Button>
-            <Button onClick={handleSave} className="flex-1"><Save className="w-4 h-4" /> Guardar</Button>
+            <Button onClick={handleSave} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white">
+              <Save className="w-4 h-4 mr-2" /> Guardar Sesión
+            </Button>
           </div>
         </div>
       </Modal>

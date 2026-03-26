@@ -1,10 +1,23 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
+// LOCAL DEV: provider = "sqlite", DATABASE_URL = "file:./dev.db"
+// VERCEL:    provider = "postgresql", DATABASE_URL = "postgresql://...", DIRECT_URL = "postgresql://..."
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  fullName     String   @default("Administrador")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
 }
 
 model Group {
@@ -17,6 +30,17 @@ model Group {
   updatedAt   DateTime @updatedAt
 
   simulations Simulation[]
+  members     Member[]
+}
+
+model Member {
+  id        String   @id @default(cuid())
+  groupId   String
+  name      String
+  role      String   @default("")
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
 
 model Simulation {
@@ -39,6 +63,9 @@ model Simulation {
   officialPrediction Float?
   predictionNote     String @default("")
   startMonth         Int    @default(4)
+  startYear          Int    @default(2026)
+  startDay           Int    @default(0)
+  projDays           Int    @default(45)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,6 +91,7 @@ model Entry {
   note         String @default("")
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   simulation Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
 }

@@ -1,31 +1,29 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { TARIJA_BY_MONTH } from '@/data/tarija-climate'
+import type { GrowthParams, DayConditions, ProjPoint } from '@/lib/types'
+
+// ── Date helpers (shared across simulation components) ────────────────────────
+export const MN  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+export const MNS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+
+export function datePlus(year: number, month: number, days: number): Date {
+  return new Date(year, month - 1, 1 + days)
+}
+export function fmtDate(d: Date): string {
+  return `${d.getDate()} ${MNS[d.getMonth()]} ${d.getFullYear()}`
+}
+export function fmtShort(d: Date): string {
+  return `${d.getDate()} ${MNS[d.getMonth()]}`
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export interface GrowthParams {
-  initialHeight: number
-  baseGrowth: number
-  optimalTemp: number
-  optimalHumidity: number
-  optimalLight: number
-}
-
-export interface DayConditions {
-  temperature: number
-  humidity: number
-  lightHours: number
-}
-
-/**
- * Returns 0–1 effect of each variable on daily growth.
- * Displayed as % to students (0.78 → "78%")
- */
 export function calcEffects(params: GrowthParams, cond: DayConditions) {
-  const tempEffect = Math.max(0, 1 - Math.abs(cond.temperature - params.optimalTemp) / 10)
-  const humEffect  = Math.max(0, 1 - Math.abs(cond.humidity - params.optimalHumidity) / 40)
+  const tempEffect  = Math.max(0, 1 - Math.abs(cond.temperature - params.optimalTemp) / 10)
+  const humEffect   = Math.max(0, 1 - Math.abs(cond.humidity - params.optimalHumidity) / 40)
   const lightEffect = Math.min(1, cond.lightHours / params.optimalLight)
   return { tempEffect, humEffect, lightEffect }
 }
@@ -36,40 +34,44 @@ export function calcDailyGrowth(params: GrowthParams, cond: DayConditions): numb
 }
 
 export function calcHeightAtDay(params: GrowthParams, days: number, cond: DayConditions): number {
-  const daily = calcDailyGrowth(params, cond)
-  return params.initialHeight + daily * days
+  return params.initialHeight + calcDailyGrowth(params, cond) * days
 }
 
-/**
- * Generate projected height curve using Tarija seasonal averages.
- * Returns array of {day, height, tempEffect, lightEffect, humEffect}
- */
-export const TARIJA_BY_MONTH: Record<number, DayConditions> = {
-  1:  { temperature: 19.2, humidity: 72, lightHours: 13.5 },
-  2:  { temperature: 19.0, humidity: 74, lightHours: 13.1 },
-  3:  { temperature: 17.8, humidity: 70, lightHours: 12.2 },
-  4:  { temperature: 15.9, humidity: 65, lightHours: 11.5 },
-  5:  { temperature: 13.4, humidity: 60, lightHours: 10.9 },
-  6:  { temperature: 11.2, humidity: 55, lightHours: 10.5 },
-  7:  { temperature: 11.0, humidity: 53, lightHours: 10.7 },
-  8:  { temperature: 13.1, humidity: 56, lightHours: 11.4 },
-  9:  { temperature: 15.5, humidity: 62, lightHours: 12.1 },
-  10: { temperature: 17.2, humidity: 66, lightHours: 12.8 },
-  11: { temperature: 18.5, humidity: 70, lightHours: 13.4 },
-  12: { temperature: 19.1, humidity: 72, lightHours: 13.6 },
-}
-
+/** Projection using TARIJA_BY_MONTH monthly averages — used as fallback when real climate unavailable. */
 export function generateProjection(params: GrowthParams, startDate: Date, totalDays = 45) {
   const result = []
+  let height = params.initialHeight
   for (let d = 0; d <= totalDays; d++) {
-    const date = new Date(startDate)
-    date.setDate(date.getDate() + d)
+    if (d === 0) { result.push({ day: 0, height, date: startDate.toISOString().split('T')[0], cond: TARIJA_BY_MONTH[startDate.getMonth() + 1] ?? TARIJA_BY_MONTH[3], effects: calcEffects(params, TARIJA_BY_MONTH[startDate.getMonth() + 1] ?? TARIJA_BY_MONTH[3]) }); continue }
+    const date = new Date(startDate); date.setDate(date.getDate() + d)
     const month = date.getMonth() + 1
     const cond = TARIJA_BY_MONTH[month] ?? TARIJA_BY_MONTH[3]
     const effects = calcEffects(params, cond)
-    const daily = params.baseGrowth * effects.tempEffect * effects.humEffect * effects.lightEffect
-    const height = parseFloat((params.initialHeight + daily * d).toFixed(2))
+    height = parseFloat((height + params.baseGrowth * effects.tempEffect * effects.humEffect * effects.lightEffect).toFixed(2))
     result.push({ day: d, height, date: date.toISOString().split('T')[0], cond, effects })
+  }
+  return result
+}
+
+/**
+ * Projection using real daily climate data from the API.
+ * Returns null for height on days where climate data is missing.
+ */
+export function generateProjectionFromClimate(
+  params: GrowthParams,
+  climateDays: ({ temperature: number; humidity: number; lightHours: number } | null)[],
+  startIdx: number,
+  totalDays: number
+): ProjPoint[] {
+  const result: ProjPoint[] = []
+  let height = params.initialHeight
+  result.push({ day: 0, height, hasData: true })
+  for (let d = 1; d <= totalDays; d++) {
+    const cd = climateDays[startIdx + d]
+    if (!cd) { result.push({ day: d, height: null, hasData: false }); continue }
+    const eff = calcEffects(params, cd)
+    height = parseFloat((height + params.baseGrowth * eff.tempEffect * eff.humEffect * eff.lightEffect).toFixed(2))
+    result.push({ day: d, height, hasData: true })
   }
   return result
 }
@@ -79,14 +81,8 @@ export function generateCode(): string {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-export function pct(v: number) {
-  return Math.round(v * 100)
-}
-
-export function round1(v: number) {
-  return Math.round(v * 10) / 10
-}
-
+export function pct(v: number) { return Math.round(v * 100) }
+export function round1(v: number) { return Math.round(v * 10) / 10 }
 export function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit' })
 }

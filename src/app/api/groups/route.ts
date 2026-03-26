@@ -1,26 +1,21 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { generateCode } from '@/lib/utils'
+import { GroupService } from '@/server/services/GroupService'
 
 export async function GET() {
-  const groups = await prisma.group.findMany({
-    include: { _count: { select: { simulations: true } } },
-    orderBy: { createdAt: 'desc' },
-  })
-  return NextResponse.json(groups)
+  try {
+    const groups = await GroupService.getAllGroups()
+    return NextResponse.json(groups)
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }
 
 export async function POST(req: Request) {
-  const { name, course, plant } = await req.json()
-  if (!name || !course || !plant)
-    return NextResponse.json({ error: 'Faltan campos' }, { status: 400 })
-
-  let code = generateCode()
-  // Ensure unique
-  while (await prisma.group.findUnique({ where: { code } })) code = generateCode()
-
-  const group = await prisma.group.create({
-    data: { name, course, plant, code },
-  })
-  return NextResponse.json(group, { status: 201 })
+  try {
+    const data = await req.json()
+    const group = await GroupService.createGroup(data)
+    return NextResponse.json(group, { status: 201 })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
 }

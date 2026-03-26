@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Simulador de Plantas — STEAM GP S8',
-  description: 'Simulador de crecimiento vegetal para Cambridge Global Perspectives',
+  title: 'CBT S.T.E.A.M #2 - Plant Diary',
+  description: 'Simulador de crecimiento vegetal — CBT S.T.E.A.M #2 Plant Diary',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

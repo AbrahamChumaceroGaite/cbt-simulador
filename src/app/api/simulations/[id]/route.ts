@@ -1,26 +1,31 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { SimulationService } from '@/server/services/SimulationService'
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const sim = await prisma.simulation.findUnique({
-    where: { id: params.id },
-    include: { entries: { orderBy: { sessionNum: 'asc' } }, group: true },
-  })
-  if (!sim) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-  return NextResponse.json(sim)
+  try {
+    const sim = await SimulationService.getSimulationById(params.id)
+    if (!sim) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    return NextResponse.json(sim)
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const data = await req.json()
-  const sim = await prisma.simulation.update({
-    where: { id: params.id },
-    data,
-    include: { entries: { orderBy: { sessionNum: 'asc' } }, group: true },
-  })
-  return NextResponse.json(sim)
+  try {
+    const data = await req.json()
+    const sim = await SimulationService.updateSimulation(params.id, data)
+    return NextResponse.json(sim)
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
 }
 
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  await prisma.simulation.delete({ where: { id: params.id } })
-  return NextResponse.json({ ok: true })
+  try {
+    await SimulationService.deleteSimulation(params.id)
+    return NextResponse.json({ ok: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }

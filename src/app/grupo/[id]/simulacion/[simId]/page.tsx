@@ -85,8 +85,43 @@ export default function SimulationPage({ params }: { params: { id: string; simId
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (!sim) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-6 h-6 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />
+    <div className="min-h-screen bg-zinc-950 pb-28 relative overflow-hidden">
+      <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden z-0">
+        <div className="blob blob-1" /><div className="blob blob-2" /><div className="blob blob-3" />
+      </div>
+      {/* Skeleton header */}
+      <div className="fixed top-3 left-3 right-3 z-20 rounded-2xl border border-zinc-800/70 bg-zinc-950/90 backdrop-blur-md px-4 py-3 flex items-center gap-3">
+        <div className="w-5 h-5 rounded bg-zinc-800 animate-pulse" />
+        <div className="flex-1 space-y-1.5">
+          <div className="h-3.5 w-40 rounded bg-zinc-800 animate-pulse" />
+          <div className="h-2.5 w-24 rounded bg-zinc-800/60 animate-pulse" />
+        </div>
+        <div className="h-8 w-8 rounded-lg bg-zinc-800 animate-pulse" />
+      </div>
+      {/* Skeleton content */}
+      <main className="max-w-2xl mx-auto px-4 pt-20 pb-5 space-y-4">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-4">
+          <div className="space-y-2">
+            <div className="h-4 w-32 rounded bg-zinc-800 animate-pulse" />
+            <div className="h-3 w-48 rounded bg-zinc-800/60 animate-pulse" />
+          </div>
+          <div className="h-48 rounded-lg bg-zinc-800/40 animate-pulse" />
+          <div className="grid grid-cols-2 gap-3">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="space-y-1.5">
+                <div className="h-3 w-20 rounded bg-zinc-800 animate-pulse" />
+                <div className="h-9 rounded-lg bg-zinc-800/60 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+      {/* Skeleton bottom nav */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 p-1.5 rounded-full border border-zinc-800/50 bg-zinc-950/80">
+        {[1,2,3,4,5].map(i => (
+          <div key={i} className="w-16 h-10 rounded-full bg-zinc-800/60 animate-pulse" />
+        ))}
+      </div>
     </div>
   )
 

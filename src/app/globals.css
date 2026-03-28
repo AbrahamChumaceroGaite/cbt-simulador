@@ -99,7 +99,7 @@
 
 * { box-sizing: border-box; }
 
-/* ── Animated blobs ─────────────────────────────────────────────────────────── */
+/* ── Animated background blobs ──────────────────────────────────────────────── */
 @keyframes blob1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33%       { transform: translate(40px, -30px) scale(1.08); }
@@ -121,6 +121,7 @@
   filter: blur(80px);
   pointer-events: none;
 }
+/* Colors: amber + green + blue — identidad visual de CBT Simulador Plantas */
 .blob-1 {
   width: 500px; height: 500px;
   background: #d97706;

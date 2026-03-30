@@ -7,7 +7,7 @@ export class EntryMapper {
       id:           entity.id,
       simulationId: entity.simulationId,
       sessionNum:   entity.sessionNum,
-      date:         entity.date instanceof Date ? entity.date.toISOString() : entity.date,
+      date:         entity.date instanceof Date ? entity.date.toISOString().slice(0, 10) : String(entity.date).slice(0, 10),
       myPrediction: entity.myPrediction,
       realHeight:   entity.realHeight,
       temperature:  entity.temperature,

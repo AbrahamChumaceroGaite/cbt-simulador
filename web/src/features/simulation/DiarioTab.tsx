@@ -41,7 +41,7 @@ export function DiarioTab({ sim, climateDays, onSave }: DiarioTabProps) {
   const entryByDay: Record<number, Entry> = {}
   sim.entries.forEach(e => {
     const day = Math.max(0, Math.round(
-      (new Date(e.date + 'T12:00:00').getTime() - expStart.getTime()) / 86400000
+      (new Date(e.date.slice(0, 10) + 'T12:00:00').getTime() - expStart.getTime()) / 86400000
     ))
     entryByDay[day] = e
   })

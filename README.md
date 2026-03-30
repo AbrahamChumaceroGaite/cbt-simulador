@@ -1,50 +1,256 @@
-# CBT Simulador Plantas
+# CBT Simulador Plantas — Plant Diary
 
-Aplicación web especializada en pronósticos de simulación de crecimiento de siembras agrarias (ej. semillas de Lechuga, Tomate, etc). Utiliza un modelo reactivo basado en variables termodinámicas capturadas in situ (humedad, temperatura, horas luz) para contrastar el crecimiento con proyecciones teóricas.
+Simulador STEAM de crecimiento de plantas para grupos de estudiantes. Combina un modelo matemático basado en variables termodinámicas (temperatura, humedad, horas de luz) con datos climáticos reales de Tarija vía Open-Meteo, permitiendo comparar predicciones teóricas contra mediciones reales.
+
+---
+
+## Estructura del proyecto (npm workspaces)
+
+```
+cbt-simulador-plantas/
+├── shared/       @simulador/shared — tipos compartidos frontend ↔ backend + modelo de crecimiento
+├── api/          @simulador/api    — NestJS, puerto 4002, Clean Arch + CQRS
+└── web/          @simulador/web    — Next.js App Router, puerto 3002
+```
+
+Cada workspace tiene su propio `package.json`. La raíz solo administra la instalación conjunta vía npm workspaces.
+
+---
 
 ## Arquitectura
 
-El sistema implementa una arquitectura modular de tres capas, desacoplando los componentes del cliente, la lógica de controladores y las sentencias transaccionales.
+### Flujo de datos
 
-- **Frontend**: Desarrollado en Next.js (App Router), con Tailwind CSS y componentes compatibles con los estándares de diseño `abe-s-ui`. Renderizado de UI para gráficas usando `recharts` procesando series temporales in-memory.
-- **Rutas de API**: Lógica proxy minimalista donde se exponen URIs estandarizadas (/api/simulations, /api/entries, etc.) delegando el encapsulamiento DTO y el procesamiento a la capa de servicios.
-- **Servicios**: Clases modulares ubicadas en `/src/server/services/` cuya responsabilidad incluye la sanitización de inputs y validación pre-persistente.
-- **Integración de Base de Datos**: Interacción contra PostgreSQL mediada por PrismaORM.
+```
+Browser → GET /api/groups
+  → Next.js rewrite → NestJS :4002/api/groups
+    → GroupController
+      → QueryBus → GetGroupsHandler
+        → GroupRepository (interface)
+          → GroupRepositoryImpl (Prisma)
+            → SQLite
+          ← GroupEntity[]
+        ← GroupMapper.toResponse(entity)[]
+      ← GroupResponse[] (tipo de @simulador/shared)
+    ← IApiResponse<GroupResponse[]>
+  ← JSON { code, status, data, message }
+← apiFetch<GroupResponse[]>('/api/groups') → data
+```
 
-## Modelos y Entidades
+### Capas del API (`api/src/`)
 
-- `Group`: Agrupación académica asociada a un cultivo (`plant`) o curso institucional.
-- `Simulation`: Representa un escenario experimental aislado con la configuración basal (Tasa basal, temperatura, humedad y luz óptimas). Soporta simulaciones oficiales o proyecciones de demostración puramente teóricas integradas en la interfaz de exploración `isDemo`.
-- `Entry`: Mediciones secuenciadas que comparan variables empíricas vs simuladas (`realHeight`, `temperature`, `humidity`, `lightHours` y `note`).
+| Capa | Directorio | Responsabilidad |
+|------|-----------|----------------|
+| **Presentación** | `modules/[x]/[x].controller.ts` | HTTP: recibe request, llama CommandBus/QueryBus, devuelve datos crudos |
+| **Aplicación** | `modules/[x]/application/` | Commands + Handlers, Queries + Handlers, Mappers |
+| **Dominio** | `modules/[x]/domain/` | Entidades (interfaces), repositorios abstractos |
+| **Infraestructura** | `modules/[x]/infrastructure/` | Implementaciones Prisma de los repositorios |
+| **Común** | `common/` | `TransformInterceptor`, `GlobalExceptionFilter`, `JwtAuthGuard`, `AdminGuard`, `@CurrentUser`, `@ResponseMessage` |
 
-Todas las estructuras de persistencia incluyen soporte para trazabilidad temporal estándar (`createdAt`, `updatedAt`).
+### CQRS (pragmático)
 
-## Secuenciado Inicial (Seeding)
+- **Commands** (escritura): DTO + Command class + `@CommandHandler` en un solo archivo.
+- **Queries** (lectura): Query class + `@QueryHandler` en un solo archivo.
+- Sin event bus, sin event sourcing — solo `CommandBus` y `QueryBus` de `@nestjs/cqrs`.
 
-Desarrollo poblado dinámicamente. La capa Prisma soporta seeding automatizado estructurado en módulos para cursos modelo y simulaciones de tutorial a nivel componente en `/prisma/seed.ts`. Las funciones pobladoras utilizan \`tsx\` de manera asíncrona.
+```ts
+// Ejemplo: crear simulación
+export class CreateSimulationDto { @IsString() name!: string; ... }
+export class CreateSimulationCommand { constructor(public readonly dto: CreateSimulationDto) {} }
 
-Comandos para regenerar el entorno local:
-\`\`\`bash
-npx prisma db push --force-reset
-npx prisma db seed
-\`\`\`
+@CommandHandler(CreateSimulationCommand)
+export class CreateSimulationHandler implements ICommandHandler<CreateSimulationCommand, SimulationResponse> {
+  async execute({ dto }) {
+    const sim = await this.repo.create(dto)
+    return SimulationMapper.toResponse(sim)   // solo el mapper transforma
+  }
+}
+```
 
-## Ejecución y Preparación
+### Interceptor y formato estándar de respuesta
 
-### Pre-requisitos
-- Node 18.17+
-- Instancia activa PostgreSQL >= 14
+Los controllers devuelven datos crudos. El `TransformInterceptor` (registrado como `APP_INTERCEPTOR` en `AppModule`) envuelve automáticamente cada respuesta en `IApiResponse<T>` (definido en `shared/`):
 
-### Variables de Entorno (`.env`)
-\`\`\`env
-DATABASE_URL="postgresql://user:password@localhost:5432/cbt_simulador_plantas?schema=public"
-\`\`\`
+```ts
+{ code: number, status: 'success' | 'error', data: T | null, message: string }
+```
 
-### Herramientas de Desarrollo y Compilación
-- \`npm install\` (Inicialización)
-- \`npm run dev\` (Servidor en el puerto 3002)
-- \`npm run build\` (Construcción del bundle para Next.js)
-- \`npm start\` (Server de producción)
+El `GlobalExceptionFilter` convierte automáticamente cualquier excepción al mismo formato con `status: 'error'`. En el frontend, `apiFetch<T>()` desenvuelve `.data` y lanza en caso de error.
 
-### Orquestación de Despliegue
-Diseñado out-of-the-box para su contenedorización con \`Docker\`. Consulte \`Dockerfile\` en la raíz para habilitar una construcción multi-etapa recomendada. Opciones de escalabilidad a elección mediante proveedores serverless (ej. Vercel) o despliegue IaaS.
+### Paquete shared (`shared/src/`)
+
+Tipos TypeScript + lógica de crecimiento sin dependencias de runtime. Se compila a `dist/` antes que los otros workspaces.
+
+```
+shared/src/
+  types/
+    api-response.ts       IApiResponse<T>
+    session.types.ts      PlantasRole, SessionPayload
+    group.types.ts        GroupResponse, GroupInput
+    member.types.ts       MemberResponse, MemberInput
+    simulation.types.ts   SimulationResponse, SimulationInput, SimulationUpdateInput
+    entry.types.ts        EntryResponse, EntryInput
+    climate.types.ts      ClimateDay, ClimateSummary, ClimateResponse, WeatherDay
+    analytics.types.ts    GroupStatResponse
+  lib/
+    growth.ts             GrowthParams, DayConditions, ProjPoint,
+                          calcEffects(), calcDailyGrowth(), calcHeightAtDay(),
+                          generateProjectionFromClimate()
+```
+
+`SessionPayload` vive en `shared/` — es el único tipo que tanto el API (guards) como el frontend (middleware, edge runtime) necesitan simultáneamente.
+
+**Modelo de crecimiento:** `generateProjectionFromClimate()` recibe los datos reales de Open-Meteo para calcular proyecciones diarias. Si no hay datos de clima para un día, ese punto se marca con `hasData: false` y `height: null`.
+
+### Módulos del API
+
+| Módulo | Controller(s) | Descripción |
+|--------|--------------|-------------|
+| `auth` | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | JWT cookie `cbt_plants_session` 8h; grupos por código, admins por contraseña bcrypt |
+| `group` | `GET/POST/PUT/DELETE /api/groups` | CRUD grupos académicos con código único |
+| `member` | `GET/POST/PUT/DELETE /api/members` | Integrantes por grupo |
+| `simulation` | `GET/POST/PUT/DELETE /api/simulations` | Escenarios experimentales con parámetros del modelo |
+| `entry` | `POST /api/entries` | Mediciones por sesión |
+| `climate` | `GET /api/climate?month=&year=` | Proxy Open-Meteo para Tarija: temperatura, humedad, horas de luz |
+| `analytics` | `GET /api/analytics` | Estadísticas agregadas por grupo (admin) |
+| `backup` | `GET /api/backup` | Descarga JSON completo de la BD (admin) |
+
+Auth: grupos se autentican con código de 6 chars; admins con `code=admin` + password. `AdminGuard` protege analytics y backup. Se usa `jose` (edge-compatible, no `@nestjs/jwt`).
+
+### Frontend (`web/src/`) — Feature-Sliced Design (FSD)
+
+```
+lib/           (utilidades sin estado — apiFetch, verifyToken, utils)
+    ↓
+services/      (llamadas HTTP por dominio — groupsService, simulationsService…)
+    ↓
+components/    (primitivos UI reutilizables)
+    ↓
+features/      (secciones de UI por dominio — admin/, grupo/, simulation/)
+    ↓
+app/           (páginas Next.js — orquestadores delgados de estado y layout)
+```
+
+| Capa | Directorio | Responsabilidad |
+|------|-----------|----------------|
+| **lib** | `src/lib/` | `apiFetch<T>()` (desenvuelve `IApiResponse`), `verifyToken` (JWT edge-safe con `jose`), helpers de fecha y formato |
+| **services** | `src/services/` | Un objeto por dominio: `groupsService`, `membersService`, `simulationsService`, `entriesService`, `climateService`, `analyticsService`, `authService`, `backupService` |
+| **components** | `src/components/ui/` | Primitivos (Button, Card, Modal, Badge, etc.) sin lógica de negocio |
+| **features** | `src/features/[domain]/` | Componentes con lógica de UI: `admin/` (grupos + analytics), `grupo/` (miembros + tarjetas de sim), `simulation/` (tabs del simulador) |
+| **app** | `src/app/` | Pages como orquestadores: estado global, composición de features, rutas |
+
+- `src/middleware.ts` — protección de rutas: redirige a `/login` si no hay sesión; grupos solo acceden a `/grupo/[id]`.
+- `next.config.js` — rewrite de `/api/*` → `API_URL/api/*` + `transpilePackages: ['@simulador/shared']`.
+
+---
+
+## Configuración local
+
+### Requisitos
+
+- Node.js >= 18.17
+- SQLite (desarrollo)
+
+### Variables de entorno
+
+**`api/.env`** (copia de `api/.env.example`):
+```env
+DATABASE_URL="file:./prisma/dev.db"
+JWT_SECRET="cbt-plants-dev-secret-change-in-prod"
+PORT=4002
+WEB_ORIGIN=http://localhost:3002
+```
+
+**`web/.env.local`** (copia de `web/.env.example`):
+```env
+API_URL=http://localhost:4002
+```
+
+### Instalación y desarrollo
+
+```bash
+# Instalar todas las dependencias (una sola vez desde raíz)
+npm install
+
+# Compilar el paquete shared (requerido antes de api y web)
+npm run build:shared
+
+# Aplicar schema y poblar BD (solo primera vez)
+cd api && npx prisma db push && npm run db:seed && cd ..
+
+# Iniciar api y web en terminales separadas
+npm run dev:api    # NestJS en :4002
+npm run dev:web    # Next.js en :3002
+```
+
+### Build de producción
+
+```bash
+npm run build   # shared → api → web (en orden)
+```
+
+### Credenciales por defecto (seed)
+
+- Admin: `code=admin` / `password=admin123`
+- Demo group: código `DEMO`
+
+---
+
+## Modelos de base de datos
+
+```
+User (admin)
+
+Group ─── Member
+  │
+  └── Simulation ─── Entry
+```
+
+- **User** — admin con `passwordHash` (bcrypt).
+- **Group** — grupo académico con código único de 6 chars y planta asignada (ej. Lechuga).
+- **Member** — integrante del grupo (nombre + rol).
+- **Simulation** — escenario experimental: parámetros del modelo (`initialHeight`, `baseGrowth`, `optimalTemp`, `optimalHumidity`, `optimalLight`), predicción oficial bloqueeable, fecha de inicio.
+- **Entry** — medición por sesión: `myPrediction`, `realHeight`, `temperature`, `humidity`, `lightHours`, `note`.
+
+---
+
+## Docker
+
+El proyecto incluye Dockerfiles multi-stage por workspace (`api/Dockerfile`, `web/Dockerfile`) y un `docker-compose.yml` en raíz con Nginx como reverse proxy.
+
+```
+docker-compose.yml
+├── api   → :4002 (NestJS, healthcheck en /api/auth/me)
+├── web   → :3002 (Next.js standalone, depende de api healthy)
+└── nginx → :80  (/api/* → api, /* → web)
+```
+
+**Base de datos:** SQLite con volumen Docker (`sqlite_data`) montado en `/app/prisma`. Persiste entre reinicios. Para escalado horizontal, cambiar `DATABASE_URL` a PostgreSQL.
+
+El entrypoint del API (`api/docker-entrypoint.sh`) ejecuta automáticamente `prisma db push` y `npm run db:seed` antes de arrancar.
+
+```bash
+# JWT_SECRET es obligatorio — el compose falla si no se define
+JWT_SECRET=tu-secreto-seguro docker compose up --build
+```
+
+---
+
+## Rutas API
+
+| Método | Ruta | Auth |
+|--------|------|------|
+| POST | `/api/auth/login` | — |
+| POST | `/api/auth/logout` | — |
+| GET | `/api/auth/me` | JWT |
+| GET/POST | `/api/groups` | JWT/Admin |
+| GET/PUT/DELETE | `/api/groups/:id` | JWT/Admin |
+| GET | `/api/members/by-group/:groupId` | JWT |
+| POST | `/api/members` | JWT |
+| PUT/DELETE | `/api/members/:id` | JWT |
+| GET/POST | `/api/simulations` | JWT |
+| GET/PUT/DELETE | `/api/simulations/:id` | JWT |
+| POST | `/api/entries` | JWT |
+| GET | `/api/climate?month=&year=` | JWT |
+| GET | `/api/analytics` | JWT + Admin |
+| GET | `/api/backup` | JWT + Admin |

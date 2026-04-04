@@ -161,7 +161,7 @@ PORT=4002
 WEB_ORIGIN=http://localhost:3002
 ```
 
-**`web/.env.local`** (copia de `web/.env.example`):
+**`web/.env`** (copia de `web/.env.example`):
 ```env
 API_URL=http://localhost:4002
 ```
@@ -220,12 +220,12 @@ El proyecto incluye Dockerfiles multi-stage por workspace (`api/Dockerfile`, `we
 
 ```
 docker-compose.yml
-├── api   → :4002 (NestJS, healthcheck en /api/auth/me)
+├── api   → :4002 (NestJS, healthcheck en /api/health)
 ├── web   → :3002 (Next.js standalone, depende de api healthy)
 └── nginx → :80  (/api/* → api, /* → web)
 ```
 
-**Base de datos:** SQLite con volumen Docker (`sqlite_data`) montado en `/app/prisma`. Persiste entre reinicios. Para escalado horizontal, cambiar `DATABASE_URL` a PostgreSQL.
+**Base de datos:** SQLite con volumen Docker (`sqlite_data`) montado en `/app/data`. El archivo `prod.db` persiste entre reinicios. Para escalado horizontal, cambiar `DATABASE_URL` a PostgreSQL.
 
 El entrypoint del API (`api/docker-entrypoint.sh`) ejecuta automáticamente `prisma db push` y `npm run db:seed` antes de arrancar.
 

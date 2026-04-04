@@ -9,9 +9,10 @@ import { DeleteSimulationHandler }  from './application/commands/delete-simulati
 import { SimulationRepository }     from './domain/simulation.repository'
 import { SimulationRepositoryImpl } from './infrastructure/simulation.repository.impl'
 import { PrismaService }            from '../../infrastructure/prisma/prisma.service'
+import { SocketModule }             from '../../infrastructure/socket/socket.module'
 
 @Module({
-  imports:     [CqrsModule],
+  imports:     [CqrsModule, SocketModule],
   controllers: [SimulationController],
   providers:   [
     PrismaService,

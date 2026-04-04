@@ -8,6 +8,8 @@ import { simulationsService } from '@/services/simulations.service'
 import { entriesService }     from '@/services/entries.service'
 import { climateService }     from '@/services/climate.service'
 import { authService }        from '@/services/auth.service'
+import { useWsEvent }         from '@/hooks/useWsEvent'
+import { WS }                 from '@/ws/events'
 import type { Sim, ClimateDay, ClimateSummary, Tab } from '@/lib/types'
 import { PlantaTab }     from '@/features/simulation/PlantaTab'
 import { ModeloTab }     from '@/features/simulation/ModeloTab'
@@ -41,6 +43,11 @@ export default function SimulationPage({ params }: { params: { id: string; simId
   [params.simId])
 
   useEffect(() => { loadSim() }, [loadSim])
+
+  // ── Live updates via WebSocket ───────────────────────────────────────────
+  useWsEvent(WS.SIMULATION_UPDATED, ({ simulationId }) => {
+    if (simulationId === params.simId) loadSim()
+  }, [params.simId])
 
   // ── Fetch climate for saved start month/year ─────────────────────────────
   // Used by DiarioTab and PrediccionTab so they reflect real climate data.

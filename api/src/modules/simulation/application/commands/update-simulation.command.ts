@@ -3,6 +3,7 @@ import { IsBoolean, IsNumber, IsOptional, IsString }          from 'class-valida
 import { NotFoundException }                                   from '@nestjs/common'
 import { SimulationRepository }                               from '../../domain/simulation.repository'
 import { SimulationMapper }                                   from '../simulation.mapper'
+import { SocketService }                                      from '../../../../infrastructure/socket/socket.service'
 import type { SimulationResponse }                            from '@simulador/shared'
 
 export class UpdateSimulationDto {
@@ -29,12 +30,19 @@ export class UpdateSimulationCommand {
 
 @CommandHandler(UpdateSimulationCommand)
 export class UpdateSimulationHandler implements ICommandHandler<UpdateSimulationCommand, SimulationResponse> {
-  constructor(private readonly repo: SimulationRepository) {}
+  constructor(
+    private readonly repo:    SimulationRepository,
+    private readonly sockets: SocketService,
+  ) {}
 
   async execute({ id, dto }: UpdateSimulationCommand): Promise<SimulationResponse> {
     const existing = await this.repo.findById(id)
     if (!existing) throw new NotFoundException('Simulación no encontrada')
     const entity = await this.repo.update(id, dto)
+    this.sockets.simulationUpdated(entity.groupId, {
+      simulationId: entity.id,
+      isLocked:     entity.isLocked,
+    })
     return SimulationMapper.toResponse(entity)
   }
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { SocketProvider } from '@/contexts/SocketContext'
 
 export const metadata: Metadata = {
   title: 'CBT S.T.E.A.M #2 - Plant Diary',
@@ -10,7 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className="dark">
       <body className="bg-zinc-950 text-zinc-100 antialiased min-h-screen">
-        {children}
+        <SocketProvider>
+          {children}
+        </SocketProvider>
       </body>
     </html>
   )

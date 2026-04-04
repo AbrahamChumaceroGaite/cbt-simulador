@@ -12,6 +12,7 @@ import { EntryModule }      from './modules/entry/entry.module'
 import { ClimateModule }    from './modules/climate/climate.module'
 import { AnalyticsModule }  from './modules/analytics/analytics.module'
 import { BackupModule }     from './modules/backup/backup.module'
+import { SocketModule }    from './infrastructure/socket/socket.module'
 
 @Module({
   controllers: [AppController],
@@ -19,6 +20,7 @@ import { BackupModule }     from './modules/backup/backup.module'
     CqrsModule.forRoot(),
     AuthModule, GroupModule, MemberModule, SimulationModule,
     EntryModule, ClimateModule, AnalyticsModule, BackupModule,
+    SocketModule,
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: TransformInterceptor }],
 })

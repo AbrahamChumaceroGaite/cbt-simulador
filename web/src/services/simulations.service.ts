@@ -2,6 +2,9 @@ import { apiFetch } from '@/lib/api'
 import type { SimulationResponse, SimulationInput, SimulationUpdateInput } from '@simulador/shared'
 
 export const simulationsService = {
+  getAll: (groupId?: string) =>
+    apiFetch<SimulationResponse[]>(groupId ? `/api/simulations?groupId=${groupId}` : '/api/simulations'),
+
   getById: (id: string) =>
     apiFetch<SimulationResponse>(`/api/simulations/${id}`),
 

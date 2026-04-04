@@ -9,6 +9,8 @@ import { simulationsService } from '@/services/simulations.service'
 import { authService }        from '@/services/auth.service'
 import { SimCard }        from '@/features/grupo/SimCard'
 import { MembersSection } from '@/features/grupo/MembersSection'
+import { useWsEvent }     from '@/hooks/useWsEvent'
+import { WS }             from '@/ws/events'
 
 type Group = GroupResponse
 
@@ -24,6 +26,11 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
   const load = () => groupsService.getById(params.id).then(setGroup)
   useEffect(() => { load() }, [])
+
+  // Refresh when admin records a new entry for this group's simulations
+  useWsEvent(WS.ENTRY_SAVED, ({ groupId }) => {
+    if (groupId === params.id) load()
+  }, [params.id])
 
   async function logout() {
     await authService.logout()

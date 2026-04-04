@@ -1,34 +1,49 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sprout, LogOut, Users, FlaskConical, Download } from 'lucide-react'
-import type { GroupResponse, GroupStatResponse } from '@simulador/shared'
+import { Sprout, LogOut, Users, FlaskConical, Download, BookOpen, BarChart3 } from 'lucide-react'
+import type { GroupResponse, GroupStatResponse, SimulationResponse } from '@simulador/shared'
 import { Card, CardContent, Tooltip } from '@/components/ui'
-import { groupsService }    from '@/services/groups.service'
-import { analyticsService } from '@/services/analytics.service'
-import { backupService }    from '@/services/backup.service'
-import { authService }      from '@/services/auth.service'
-import { AdminGroupsSection }    from '@/features/admin/AdminGroupsSection'
-import { AdminAnalyticsSection } from '@/features/admin/AdminAnalyticsSection'
+import { groupsService }       from '@/services/groups.service'
+import { analyticsService }    from '@/services/analytics.service'
+import { backupService }       from '@/services/backup.service'
+import { authService }         from '@/services/auth.service'
+import { simulationsService }  from '@/services/simulations.service'
+import { AdminGroupsSection }       from '@/features/admin/AdminGroupsSection'
+import { AdminAnalyticsSection }    from '@/features/admin/AdminAnalyticsSection'
+import { AdminSimulationsSection }  from '@/features/admin/AdminSimulationsSection'
+import { AdminMembersSection }      from '@/features/admin/AdminMembersSection'
+import { AdminEntriesSection }      from '@/features/admin/AdminEntriesSection'
 
-type Group = GroupResponse
-type GroupStat = GroupStatResponse
+type Tab = 'grupos' | 'simulaciones' | 'integrantes' | 'sesiones' | 'analytics'
+
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: 'grupos',        label: 'Grupos',        icon: <Users       className="w-3.5 h-3.5" /> },
+  { id: 'simulaciones',  label: 'Simulaciones',  icon: <FlaskConical className="w-3.5 h-3.5" /> },
+  { id: 'integrantes',   label: 'Integrantes',   icon: <Users       className="w-3.5 h-3.5" /> },
+  { id: 'sesiones',      label: 'Sesiones',      icon: <BookOpen    className="w-3.5 h-3.5" /> },
+  { id: 'analytics',     label: 'Analytics',     icon: <BarChart3   className="w-3.5 h-3.5" /> },
+]
 
 export default function AdminPage() {
   const router = useRouter()
-  const [groups, setGroups] = useState<Group[]>([])
-  const [stats, setStats]   = useState<GroupStat[]>([])
-  const [loading, setLoading] = useState(true)
-  const [backing, setBacking] = useState(false)
+  const [tab, setTab]           = useState<Tab>('grupos')
+  const [groups, setGroups]     = useState<GroupResponse[]>([])
+  const [stats, setStats]       = useState<GroupStatResponse[]>([])
+  const [simulations, setSimulations] = useState<SimulationResponse[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [backing, setBacking]   = useState(false)
 
   async function load() {
     setLoading(true)
-    const [groups, stats] = await Promise.all([
+    const [groups, stats, simulations] = await Promise.all([
       groupsService.getAll(),
       analyticsService.getStats(),
+      simulationsService.getAll(),
     ])
     setGroups(groups)
     setStats(stats)
+    setSimulations(simulations)
     setLoading(false)
   }
 
@@ -47,7 +62,9 @@ export default function AdminPage() {
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
-      a.href = url; a.download = `backup-plantas-${new Date().toISOString().split('T')[0]}.json`; a.click()
+      a.href = url
+      a.download = `backup-plantas-${new Date().toISOString().split('T')[0]}.json`
+      a.click()
       URL.revokeObjectURL(url)
     } finally { setBacking(false) }
   }
@@ -57,6 +74,8 @@ export default function AdminPage() {
       <div className="w-6 h-6 rounded-full border-2 border-zinc-700 border-t-emerald-400 animate-spin" />
     </div>
   )
+
+  const totalMembers = groups.reduce((a, g) => a + (g._count?.members ?? 0), 0)
 
   return (
     <div className="min-h-screen bg-zinc-950 relative overflow-hidden">
@@ -86,33 +105,74 @@ export default function AdminPage() {
 
       <main className="max-w-3xl mx-auto px-4 pt-20 pb-8 space-y-6">
         {/* Summary stats */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <Card>
-            <CardContent className="pt-4 pb-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-950 border border-emerald-900 flex items-center justify-center">
-                <Users className="w-4 h-4 text-emerald-400" />
-              </div>
+            <CardContent className="pt-3 pb-3 flex items-center gap-2">
+              <Users className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               <div>
-                <p className="text-2xl font-bold text-white">{groups.length}</p>
-                <p className="text-xs text-zinc-500">Grupos activos</p>
+                <p className="text-xl font-bold text-white">{groups.length}</p>
+                <p className="text-[10px] text-zinc-500">Grupos</p>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4 pb-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-                <FlaskConical className="w-4 h-4 text-zinc-400" />
-              </div>
+            <CardContent className="pt-3 pb-3 flex items-center gap-2">
+              <FlaskConical className="w-4 h-4 text-zinc-400 flex-shrink-0" />
               <div>
-                <p className="text-2xl font-bold text-white">{groups.reduce((a, g) => a + (g._count?.simulations ?? 0), 0)}</p>
-                <p className="text-xs text-zinc-500">Simulaciones</p>
+                <p className="text-xl font-bold text-white">{simulations.length}</p>
+                <p className="text-[10px] text-zinc-500">Simulaciones</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-3 pb-3 flex items-center gap-2">
+              <Users className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+              <div>
+                <p className="text-xl font-bold text-white">{totalMembers}</p>
+                <p className="text-[10px] text-zinc-500">Integrantes</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-3 pb-3 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+              <div>
+                <p className="text-xl font-bold text-white">
+                  {simulations.reduce((a, s) => a + (s._count?.entries ?? 0), 0)}
+                </p>
+                <p className="text-[10px] text-zinc-500">Sesiones</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <AdminGroupsSection groups={groups} onReload={load} />
-        <AdminAnalyticsSection stats={stats} />
+        {/* Tab nav */}
+        <div className="flex items-center gap-1 bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-1 overflow-x-auto">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                tab === t.id
+                  ? 'bg-zinc-800 text-white shadow'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        {tab === 'grupos'       && <AdminGroupsSection      groups={groups}           onReload={load} />}
+        {tab === 'simulaciones' && <AdminSimulationsSection  simulations={simulations} onReload={load} />}
+        {tab === 'integrantes'  && <AdminMembersSection      groups={groups} />}
+        {tab === 'sesiones'     && simulations.length > 0 && <AdminEntriesSection simulations={simulations} />}
+        {tab === 'sesiones'     && simulations.length === 0 && (
+          <p className="text-sm text-zinc-600 text-center py-8">No hay simulaciones todavía.</p>
+        )}
+        {tab === 'analytics'    && <AdminAnalyticsSection    stats={stats} />}
       </main>
 
       <footer className="relative z-10 text-center py-6 text-zinc-700 text-xs">

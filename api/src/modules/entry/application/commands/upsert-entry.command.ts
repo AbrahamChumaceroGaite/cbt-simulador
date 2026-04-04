@@ -2,6 +2,8 @@ import { ICommandHandler, CommandHandler }          from '@nestjs/cqrs'
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator'
 import { EntryRepository }                           from '../../domain/entry.repository'
 import { EntryMapper }                               from '../entry.mapper'
+import { SocketService }                             from '../../../../infrastructure/socket/socket.service'
+import { SimulationRepository }                      from '../../../simulation/domain/simulation.repository'
 import type { EntryResponse }                        from '@simulador/shared'
 
 export class UpsertEntryDto {
@@ -22,10 +24,23 @@ export class UpsertEntryCommand {
 
 @CommandHandler(UpsertEntryCommand)
 export class UpsertEntryHandler implements ICommandHandler<UpsertEntryCommand, EntryResponse> {
-  constructor(private readonly repo: EntryRepository) {}
+  constructor(
+    private readonly repo:    EntryRepository,
+    private readonly simRepo: SimulationRepository,
+    private readonly sockets: SocketService,
+  ) {}
 
   async execute({ dto }: UpsertEntryCommand): Promise<EntryResponse> {
     const entity = await this.repo.upsert(dto)
+    const sim    = await this.simRepo.findById(dto.simulationId)
+    if (sim) {
+      this.sockets.entrySaved({
+        simulationId: entity.simulationId,
+        groupId:      sim.groupId,
+        sessionNum:   entity.sessionNum,
+        realHeight:   entity.realHeight,
+      })
+    }
     return EntryMapper.toResponse(entity)
   }
 }

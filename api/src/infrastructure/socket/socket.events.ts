@@ -1,0 +1,6 @@
+export const WS_EVENTS = {
+  ENTRY_SAVED:         'entry:saved',
+  SIMULATION_UPDATED:  'simulation:updated',
+} as const
+
+export type WsEvent = typeof WS_EVENTS[keyof typeof WS_EVENTS]

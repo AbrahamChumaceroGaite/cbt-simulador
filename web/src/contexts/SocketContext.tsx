@@ -41,7 +41,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         try {
           const { event, data } = JSON.parse(e.data)
           const handlers = listeners.current.get(event)
-          if (handlers) for (const h of handlers) h(data)
+          if (handlers) Array.from(handlers).forEach(h => h(data))
         } catch { /* ignore malformed frames */ }
       }
     }
@@ -59,7 +59,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const h = handler as AnyHandler
       if (!listeners.current.has(event)) listeners.current.set(event, new Set())
       listeners.current.get(event)!.add(h)
-      return () => listeners.current.get(event)?.delete(h)
+      return () => { listeners.current.get(event)?.delete(h) }
     },
   }
 

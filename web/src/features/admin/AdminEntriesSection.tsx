@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import type { SimulationResponse, EntryResponse } from '@simulador/shared'
-import { Card, CardContent, EmptyState, Select, Pagination } from '@/components/ui'
+import { EmptyState, Select, Pagination } from '@/components/ui'
+import { SectionHeader } from '@/components/shared'
 import { entriesService } from '@/services/entries.service'
 
 interface AdminEntriesSectionProps {
@@ -37,30 +38,23 @@ export function AdminEntriesSection({ simulations }: AdminEntriesSectionProps) {
 
   const selectedSim = simulations.find(s => s.id === selectedSimId)
 
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-          Sesiones · {entries.length}
-        </p>
-        <Select
-          value={selectedSimId}
-          onChange={e => setSelectedSimId(e.target.value)}
-          className="text-xs max-w-xs"
-        >
-          {simulations.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.group ? `${s.group.name} — ` : ''}{s.name}
-            </option>
-          ))}
-        </Select>
-      </div>
+  const SimFilter = (
+    <Select value={selectedSimId} onChange={e => setSelectedSimId(e.target.value)} className="text-xs h-8 max-w-xs">
+      {simulations.map(s => (
+        <option key={s.id} value={s.id}>{s.group ? `${s.group.name} — ` : ''}{s.name}</option>
+      ))}
+    </Select>
+  )
 
-      {selectedSim && (
-        <p className="text-xs text-zinc-600">
-          {selectedSim.plantName} · Inicio {selectedSim.startYear}/{String(selectedSim.startMonth).padStart(2,'0')}/{String(selectedSim.startDay).padStart(2,'0')} · {selectedSim.projDays} días proyectados
-        </p>
-      )}
+  return (
+    <section className="space-y-3 animate-in fade-in duration-300">
+      <SectionHeader
+        icon={BookOpen}
+        iconClass="text-zinc-400"
+        title="Sesiones"
+        subtitle={selectedSim ? `${selectedSim.plantName} · ${entries.length} medición${entries.length !== 1 ? 'es' : ''}` : `${entries.length} mediciones`}
+        filters={SimFilter}
+      />
 
       {loading ? (
         <div className="flex justify-center py-8">

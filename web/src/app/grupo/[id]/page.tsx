@@ -46,7 +46,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
       optimalTemp: group.plant === 'Lechuga' ? 18   : group.plant === 'Tomate' ? 22   : 20,
     })
     setCreating(false); setShowCreate(false); setSimName('')
-    router.push(`/grupo/${group.id}/simulacion/${sim.id}`)
+    router.push(`/grupo/${group.id}/simulacion/${sim.data.id}`)
   }
 
   function copyCode() {

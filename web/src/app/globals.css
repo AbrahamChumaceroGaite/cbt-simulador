@@ -72,6 +72,22 @@
 }
 
 @layer components {
+  /* Login native input */
+  .input {
+    @apply w-full rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/30 transition-colors;
+  }
+
+  .card-base {
+    @apply border rounded-xl overflow-hidden shadow-sm;
+    background-color: #0c0c0e;
+    border-color: #27272a;
+  }
+  .panel-title    { @apply text-lg font-bold tracking-tight mb-1; color: #fff; }
+  .panel-subtitle { @apply text-sm mb-6; color: #a1a1aa; }
+
+  /* Page wrapper */
+  .page-wrapper { @apply pb-32; }
+
   /* Premium Floating Nav - AI Studio Style */
   .floating-nav {
     @apply fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 p-1.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)] border transition-all;

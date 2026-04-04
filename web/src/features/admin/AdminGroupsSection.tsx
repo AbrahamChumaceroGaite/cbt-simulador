@@ -1,23 +1,26 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sprout, Plus, Pencil, Trash2, ChevronRight, Users, Copy, CheckCheck } from 'lucide-react'
+import { Sprout, Plus, ChevronRight, Copy, CheckCheck, Users } from 'lucide-react'
 import type { GroupResponse } from '@simulador/shared'
 import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
+import { CardActions, SectionHeader } from '@/components/shared'
 import { groupsService } from '@/services/groups.service'
-import { GroupForm } from './GroupForm'
+import { GroupForm }     from './GroupForm'
 
 type Group = GroupResponse
 
-interface AdminGroupsSectionProps {
-  groups: Group[]
-  onReload: () => void
+interface Props {
+  groups:    Group[]
+  onReload:  () => void
+  showToast: (msg: string, ok?: boolean) => void
 }
 
-export function AdminGroupsSection({ groups, onReload }: AdminGroupsSectionProps) {
+export function AdminGroupsSection({ groups, onReload, showToast }: Props) {
   const router = useRouter()
   const [page, setPage]             = useState(0)
   const [pageSize, setPageSize]     = useState(10)
+  const [search, setSearch]         = useState('')
   const [copied, setCopied]         = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [editGroup, setEditGroup]   = useState<Group | null>(null)
@@ -36,50 +39,72 @@ export function AdminGroupsSection({ groups, onReload }: AdminGroupsSectionProps
   async function createGroup() {
     if (!form.name.trim()) return
     setSaving(true)
-    await groupsService.create(form)
-    setSaving(false); setShowCreate(false); setForm({ name: '', course: 'S2A', plant: 'Lechuga' }); onReload()
+    try {
+      const { message } = await groupsService.create(form)
+      showToast(message)
+      setShowCreate(false); setForm({ name: '', course: 'S2A', plant: 'Lechuga' }); onReload()
+    } catch (err: any) { showToast(err.message ?? 'Error', false) }
+    finally { setSaving(false) }
   }
 
   async function updateGroup() {
     if (!editGroup || !form.name.trim()) return
     setSaving(true)
-    await groupsService.update(editGroup.id, form)
-    setSaving(false); setEditGroup(null); onReload()
+    try {
+      const { message } = await groupsService.update(editGroup.id, form)
+      showToast(message)
+      setEditGroup(null); onReload()
+    } catch (err: any) { showToast(err.message ?? 'Error', false) }
+    finally { setSaving(false) }
   }
 
   async function deleteGroup() {
     if (!deleteId) return
-    await groupsService.delete(deleteId)
-    setDeleteId(null); onReload()
+    try {
+      await groupsService.delete(deleteId)
+      showToast('Grupo eliminado')
+      setDeleteId(null); onReload()
+    } catch (err: any) { showToast(err.message ?? 'Error', false) }
   }
 
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Grupos · {groups.length}</p>
-        <Tooltip content="Nuevo grupo" side="bottom">
-          <Button size="sm" onClick={() => { setForm({ name: '', course: 'S2A', plant: 'Lechuga' }); setShowCreate(true) }}>
-            <Plus className="w-3.5 h-3.5" /> Nuevo grupo
-          </Button>
-        </Tooltip>
-      </div>
+  const q        = search.toLowerCase()
+  const filtered = groups.filter(g => !q || g.name.toLowerCase().includes(q) || g.code.toLowerCase().includes(q) || g.course.toLowerCase().includes(q))
+  const paged    = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
-      {groups.length === 0 ? (
+  return (
+    <section className="space-y-3 animate-in fade-in duration-300">
+      <SectionHeader
+        icon={Users}
+        iconClass="text-emerald-400"
+        title="Grupos"
+        subtitle={`${groups.length} grupos registrados`}
+        search={search}
+        onSearch={v => { setSearch(v); setPage(0) }}
+        actions={
+          <Tooltip content="Nuevo grupo">
+            <Button size="sm" onClick={() => { setForm({ name: '', course: 'S2A', plant: 'Lechuga' }); setShowCreate(true) }}>
+              <Plus className="w-3.5 h-3.5" /> Nuevo
+            </Button>
+          </Tooltip>
+        }
+      />
+
+      {filtered.length === 0 ? (
         <EmptyState
           icon={<Users className="w-10 h-10" />}
-          title="Sin grupos todavía"
-          description="Crea el primer grupo para que los estudiantes puedan comenzar."
-          action={<Button size="sm" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> Crear grupo</Button>}
+          title={search ? 'Sin resultados' : 'Sin grupos todavía'}
+          description={search ? 'Prueba con otro término.' : 'Crea el primer grupo para que los estudiantes puedan comenzar.'}
+          action={!search ? <Button size="sm" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> Crear grupo</Button> : undefined}
         />
       ) : (
         <>
           <div className="space-y-2">
-            {groups.slice(page * pageSize, (page + 1) * pageSize).map(g => (
+            {paged.map(g => (
               <Card key={g.id} className="group">
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
-                      <Sprout className="w-4 h-4 text-zinc-400" />
+                      <Sprout className="w-4 h-4 text-emerald-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -98,29 +123,18 @@ export function AdminGroupsSection({ groups, onReload }: AdminGroupsSectionProps
                         </Tooltip>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Tooltip content="Ver grupo">
-                        <button onClick={() => router.push(`/grupo/${g.id}`)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </Tooltip>
-                      <Tooltip content="Editar grupo">
-                        <button onClick={() => openEdit(g)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      </Tooltip>
-                      <Tooltip content="Eliminar grupo">
-                        <button onClick={() => setDeleteId(g.id)} className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </Tooltip>
-                    </div>
+                    <Tooltip content="Ver grupo">
+                      <button onClick={() => router.push(`/grupo/${g.id}`)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
+                    <CardActions onEdit={() => openEdit(g)} onDelete={() => setDeleteId(g.id)} />
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-          <Pagination page={page} totalItems={groups.length} pageSize={pageSize}
+          <Pagination page={page} totalItems={filtered.length} pageSize={pageSize}
             onPageSizeChange={s => { setPageSize(s); setPage(0) }} onChange={setPage} />
         </>
       )}
@@ -128,11 +142,9 @@ export function AdminGroupsSection({ groups, onReload }: AdminGroupsSectionProps
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo grupo">
         <GroupForm form={form} setForm={setForm} onCancel={() => setShowCreate(false)} onSave={createGroup} saving={saving} />
       </Modal>
-
       <Modal open={!!editGroup} onClose={() => setEditGroup(null)} title="Editar grupo">
         <GroupForm form={form} setForm={setForm} onCancel={() => setEditGroup(null)} onSave={updateGroup} saving={saving} />
       </Modal>
-
       <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title="Eliminar grupo">
         <div className="space-y-4">
           <p className="text-sm text-zinc-400">¿Eliminar este grupo? Se perderán todas sus simulaciones y datos. Esta acción no se puede deshacer.</p>

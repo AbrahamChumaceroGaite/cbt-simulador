@@ -1,52 +1,67 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FlaskConical, Trash2, Lock, LockOpen, ChevronRight, Pencil } from 'lucide-react'
+import { FlaskConical, ChevronRight, Lock, LockOpen } from 'lucide-react'
 import type { SimulationResponse } from '@simulador/shared'
 import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
+import { CardActions, SectionHeader } from '@/components/shared'
 import { simulationsService } from '@/services/simulations.service'
 
-interface AdminSimulationsSectionProps {
+interface Props {
   simulations: SimulationResponse[]
-  onReload: () => void
+  onReload:    () => void
+  showToast:   (msg: string, ok?: boolean) => void
 }
 
-export function AdminSimulationsSection({ simulations, onReload }: AdminSimulationsSectionProps) {
+export function AdminSimulationsSection({ simulations, onReload, showToast }: Props) {
   const router = useRouter()
   const [page, setPage]         = useState(0)
   const [pageSize, setPageSize] = useState(10)
+  const [search, setSearch]     = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
 
   async function confirmDelete() {
     if (!deleteId) return
-    await simulationsService.delete(deleteId)
-    setDeleteId(null)
-    onReload()
+    try {
+      await simulationsService.delete(deleteId)
+      showToast('Simulación eliminada')
+      setDeleteId(null); onReload()
+    } catch (err: any) { showToast(err.message ?? 'Error', false) }
   }
 
   async function toggleLock(sim: SimulationResponse) {
     setToggling(sim.id)
-    await simulationsService.update(sim.id, { isLocked: !sim.isLocked })
-    setToggling(null)
-    onReload()
+    try {
+      const { message } = await simulationsService.update(sim.id, { isLocked: !sim.isLocked })
+      showToast(message)
+      onReload()
+    } catch (err: any) { showToast(err.message ?? 'Error', false) }
+    finally { setToggling(null) }
   }
 
-  const paged = simulations.slice(page * pageSize, (page + 1) * pageSize)
+  const q        = search.toLowerCase()
+  const filtered = simulations.filter(s =>
+    !q || s.name.toLowerCase().includes(q) || s.group?.name.toLowerCase().includes(q) || (s.plantName ?? '').toLowerCase().includes(q)
+  )
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-          Simulaciones · {simulations.length}
-        </p>
-      </div>
+    <section className="space-y-3 animate-in fade-in duration-300">
+      <SectionHeader
+        icon={FlaskConical}
+        iconClass="text-zinc-400"
+        title="Simulaciones"
+        subtitle={`${simulations.length} simulaciones en total`}
+        search={search}
+        onSearch={v => { setSearch(v); setPage(0) }}
+      />
 
-      {simulations.length === 0 ? (
+      {filtered.length === 0 ? (
         <EmptyState
           icon={<FlaskConical className="w-10 h-10" />}
-          title="Sin simulaciones"
-          description="Los grupos aún no han creado ninguna simulación."
+          title={search ? 'Sin resultados' : 'Sin simulaciones'}
+          description={search ? 'Prueba con otro término.' : 'Los grupos aún no han creado ninguna simulación.'}
         />
       ) : (
         <>
@@ -86,40 +101,24 @@ export function AdminSimulationsSection({ simulations, onReload }: AdminSimulati
                           disabled={toggling === sim.id}
                           className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
                         >
-                          {sim.isLocked
-                            ? <LockOpen className="w-3.5 h-3.5" />
-                            : <Lock    className="w-3.5 h-3.5" />}
-                        </button>
-                      </Tooltip>
-                      <Tooltip content="Eliminar simulación">
-                        <button
-                          onClick={() => setDeleteId(sim.id)}
-                          className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          {sim.isLocked ? <LockOpen className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                         </button>
                       </Tooltip>
                     </div>
+                    <CardActions onEdit={() => router.push(`/grupo/${sim.groupId}/simulacion/${sim.id}`)} onDelete={() => setDeleteId(sim.id)} />
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-          <Pagination
-            page={page}
-            totalItems={simulations.length}
-            pageSize={pageSize}
-            onPageSizeChange={s => { setPageSize(s); setPage(0) }}
-            onChange={setPage}
-          />
+          <Pagination page={page} totalItems={filtered.length} pageSize={pageSize}
+            onPageSizeChange={s => { setPageSize(s); setPage(0) }} onChange={setPage} />
         </>
       )}
 
       <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title="Eliminar simulación">
         <div className="space-y-4">
-          <p className="text-sm text-zinc-400">
-            ¿Eliminar esta simulación? Se perderán todas sus sesiones y mediciones. Esta acción no se puede deshacer.
-          </p>
+          <p className="text-sm text-zinc-400">¿Eliminar esta simulación? Se perderán todas sus sesiones y mediciones. Esta acción no se puede deshacer.</p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setDeleteId(null)} className="flex-1">Cancelar</Button>
             <Button variant="destructive" onClick={confirmDelete} className="flex-1">Eliminar</Button>

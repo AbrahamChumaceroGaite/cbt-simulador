@@ -11,3 +11,4 @@ export { EmptyState }                                                from './emp
 export { Tooltip }                                                   from './tooltip'
 export { Pagination }                                                from './pagination'
 export { Modal }                                                     from './modal'
+export { Toast }                                                     from './toast'

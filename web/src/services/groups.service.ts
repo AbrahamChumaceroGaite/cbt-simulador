@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api'
+import { apiFetch, apiFetchFull } from '@/lib/api'
 import type { GroupResponse, GroupInput } from '@simulador/shared'
 
 export const groupsService = {
@@ -9,17 +9,17 @@ export const groupsService = {
     apiFetch<GroupResponse>(`/api/groups/${id}`),
 
   create: (body: GroupInput) =>
-    apiFetch<GroupResponse>('/api/groups', {
-      method: 'POST',
+    apiFetchFull<GroupResponse>('/api/groups', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body:    JSON.stringify(body),
     }),
 
   update: (id: string, body: Partial<GroupInput>) =>
-    apiFetch<GroupResponse>(`/api/groups/${id}`, {
-      method: 'PUT',
+    apiFetchFull<GroupResponse>(`/api/groups/${id}`, {
+      method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body:    JSON.stringify(body),
     }),
 
   delete: (id: string) =>

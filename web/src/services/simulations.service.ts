@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api'
+import { apiFetch, apiFetchFull } from '@/lib/api'
 import type { SimulationResponse, SimulationInput, SimulationUpdateInput } from '@simulador/shared'
 
 export const simulationsService = {
@@ -9,17 +9,17 @@ export const simulationsService = {
     apiFetch<SimulationResponse>(`/api/simulations/${id}`),
 
   create: (body: SimulationInput) =>
-    apiFetch<SimulationResponse>('/api/simulations', {
-      method: 'POST',
+    apiFetchFull<SimulationResponse>('/api/simulations', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body:    JSON.stringify(body),
     }),
 
   update: (id: string, body: SimulationUpdateInput) =>
-    apiFetch<SimulationResponse>(`/api/simulations/${id}`, {
-      method: 'PUT',
+    apiFetchFull<SimulationResponse>(`/api/simulations/${id}`, {
+      method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body:    JSON.stringify(body),
     }),
 
   delete: (id: string) =>

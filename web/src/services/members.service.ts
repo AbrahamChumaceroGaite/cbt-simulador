@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api'
+import { apiFetch, apiFetchFull } from '@/lib/api'
 import type { MemberResponse, MemberInput } from '@simulador/shared'
 
 export const membersService = {
@@ -6,17 +6,17 @@ export const membersService = {
     apiFetch<MemberResponse[]>(`/api/members/by-group/${groupId}`),
 
   create: (body: MemberInput & { groupId: string }) =>
-    apiFetch<MemberResponse>('/api/members', {
-      method: 'POST',
+    apiFetchFull<MemberResponse>('/api/members', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body:    JSON.stringify(body),
     }),
 
   update: (id: string, body: Partial<MemberInput>) =>
-    apiFetch<MemberResponse>(`/api/members/${id}`, {
-      method: 'PUT',
+    apiFetchFull<MemberResponse>(`/api/members/${id}`, {
+      method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body:    JSON.stringify(body),
     }),
 
   delete: (id: string) =>

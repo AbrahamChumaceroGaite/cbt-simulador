@@ -3,6 +3,7 @@ import { CqrsModule }               from '@nestjs/cqrs'
 import { EntryController }          from './entry.controller'
 import { GetEntriesHandler }        from './application/queries/get-entries.query'
 import { UpsertEntryHandler }       from './application/commands/upsert-entry.command'
+import { DeleteEntryHandler }       from './application/commands/delete-entry.command'
 import { EntryRepository }          from './domain/entry.repository'
 import { EntryRepositoryImpl }      from './infrastructure/entry.repository.impl'
 import { PrismaService }            from '../../infrastructure/prisma/prisma.service'
@@ -15,7 +16,7 @@ import { SimulationRepositoryImpl } from '../simulation/infrastructure/simulatio
   controllers: [EntryController],
   providers:   [
     PrismaService,
-    GetEntriesHandler, UpsertEntryHandler,
+    GetEntriesHandler, UpsertEntryHandler, DeleteEntryHandler,
     { provide: EntryRepository,      useClass: EntryRepositoryImpl },
     { provide: SimulationRepository, useClass: SimulationRepositoryImpl },
   ],

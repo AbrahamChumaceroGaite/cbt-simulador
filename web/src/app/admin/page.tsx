@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sprout, LogOut, Users, FlaskConical, BookOpen, BarChart3, Shield, Database } from 'lucide-react'
 import type { GroupResponse, GroupStatResponse, SimulationResponse } from '@simulador/shared'
-import { Card, CardContent, Toast, Tooltip } from '@/components/ui'
+import { Toast, Tooltip } from '@/components/ui'
 import { FloatingNav }             from '@/components/shared'
 import type { NavTab }             from '@/components/shared'
 import { groupsService }           from '@/services/groups.service'
@@ -70,9 +70,6 @@ export default function AdminPage() {
     </div>
   )
 
-  const totalMembers  = groups.reduce((a, g) => a + (g._count?.members ?? 0), 0)
-  const totalSessions = simulations.reduce((a, s) => a + (s._count?.entries ?? 0), 0)
-
   return (
     <div className="min-h-screen bg-zinc-950 relative overflow-hidden">
       <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden z-0">
@@ -97,35 +94,15 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-20 page-wrapper space-y-6">
-        {/* Summary stats */}
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { icon: Users,        color: 'text-emerald-400', value: groups.length,     label: 'Grupos'      },
-            { icon: FlaskConical, color: 'text-zinc-400',    value: simulations.length, label: 'Simulaciones' },
-            { icon: Users,        color: 'text-zinc-400',    value: totalMembers,       label: 'Integrantes' },
-            { icon: BookOpen,     color: 'text-zinc-400',    value: totalSessions,      label: 'Sesiones'    },
-          ].map(s => (
-            <Card key={s.label}>
-              <CardContent className="pt-3 pb-3 flex items-center gap-2">
-                <s.icon className={`w-4 h-4 ${s.color} flex-shrink-0`} />
-                <div>
-                  <p className="text-xl font-bold text-white">{s.value}</p>
-                  <p className="text-[10px] text-zinc-500">{s.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
         {/* Tab content */}
         {tab === 'grupos'       && <AdminGroupsSection      groups={groups}           onReload={load}  showToast={showToast} />}
         {tab === 'simulaciones' && <AdminSimulationsSection  simulations={simulations} onReload={load}  showToast={showToast} />}
         {tab === 'integrantes'  && <AdminMembersSection      groups={groups}           showToast={showToast} />}
-        {tab === 'sesiones'     && simulations.length > 0 && <AdminEntriesSection simulations={simulations} />}
+        {tab === 'sesiones'     && simulations.length > 0 && <AdminEntriesSection simulations={simulations} showToast={showToast} />}
         {tab === 'sesiones'     && simulations.length === 0 && (
           <p className="text-sm text-zinc-600 text-center py-8">No hay simulaciones todavía.</p>
         )}
-        {tab === 'analytics'   && <AdminAnalyticsSection stats={stats} />}
+        {tab === 'analytics'   && <AdminAnalyticsSection stats={stats} groups={groups} simulations={simulations} />}
         {tab === 'usuarios'    && <UsuariosSection showToast={showToast} />}
         {tab === 'backup'      && <BackupSection   showToast={showToast} reloadAll={load} />}
       </main>

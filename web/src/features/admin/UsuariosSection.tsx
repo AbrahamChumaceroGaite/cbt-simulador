@@ -1,10 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Shield, Users } from 'lucide-react'
+import { Plus, Shield, Users, Pencil, Trash2 } from 'lucide-react'
 import type { UserResponse, CreateUserDto, UpdateUserDto } from '@simulador/shared'
 import { Modal, Button, Input, Label, Select, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
-import { CardActions }    from '@/components/shared'
-import { SectionHeader }  from '@/components/shared'
+import { SectionHeader } from '@/components/shared'
 import { usersService }   from '@/services/users.service'
 
 interface Props {
@@ -119,7 +118,18 @@ export function UsuariosSection({ showToast }: Props) {
                     </div>
                   </div>
                 </div>
-                <CardActions onEdit={() => openEdit(u)} onDelete={() => setDeleteId(u.id)} />
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Tooltip content="Editar">
+                    <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="Eliminar">
+                    <button onClick={() => setDeleteId(u.id)} className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </Tooltip>
+                </div>
               </div>
             ))}
           </div>

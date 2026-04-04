@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Users, Plus } from 'lucide-react'
+import { Users, Plus, Pencil, Trash2 } from 'lucide-react'
 import type { GroupResponse, MemberResponse } from '@simulador/shared'
 import { Button, Card, CardContent, Modal, Input, Label, Select, EmptyState, Tooltip, Pagination } from '@/components/ui'
-import { CardActions, SectionHeader } from '@/components/shared'
+import { SectionHeader } from '@/components/shared'
 import { membersService } from '@/services/members.service'
 
 interface Props {
@@ -127,7 +127,18 @@ export function AdminMembersSection({ groups, showToast }: Props) {
                       <p className="text-sm font-medium text-white">{m.name}</p>
                       <p className="text-xs text-zinc-500">{m.role}</p>
                     </div>
-                    <CardActions onEdit={() => openEdit(m)} onDelete={() => setDeleteId(m.id)} />
+                    <div className="flex items-center gap-1">
+                      <Tooltip content="Editar">
+                        <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content="Eliminar">
+                        <button onClick={() => setDeleteId(m.id)} className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

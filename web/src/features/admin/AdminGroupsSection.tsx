@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sprout, Plus, ChevronRight, Copy, CheckCheck, Users } from 'lucide-react'
+import { Sprout, Plus, ChevronRight, Copy, CheckCheck, Users, Pencil, Trash2 } from 'lucide-react'
 import type { GroupResponse } from '@simulador/shared'
 import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
-import { CardActions, SectionHeader } from '@/components/shared'
+import { SectionHeader } from '@/components/shared'
 import { groupsService } from '@/services/groups.service'
 import { GroupForm }     from './GroupForm'
 
@@ -123,12 +123,23 @@ export function AdminGroupsSection({ groups, onReload, showToast }: Props) {
                         </Tooltip>
                       </div>
                     </div>
-                    <Tooltip content="Ver grupo">
-                      <button onClick={() => router.push(`/grupo/${g.id}`)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </Tooltip>
-                    <CardActions onEdit={() => openEdit(g)} onDelete={() => setDeleteId(g.id)} />
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Tooltip content="Ver grupo">
+                        <button onClick={() => router.push(`/grupo/${g.id}`)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content="Editar grupo">
+                        <button onClick={() => openEdit(g)} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content="Eliminar grupo">
+                        <button onClick={() => setDeleteId(g.id)} className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

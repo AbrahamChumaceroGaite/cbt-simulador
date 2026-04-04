@@ -41,4 +41,8 @@ export class EntryRepositoryImpl extends EntryRepository {
 
     return this.prisma.entry.create({ data: payload }) as unknown as Promise<EntryEntity>
   }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.entry.delete({ where: { id } })
+  }
 }

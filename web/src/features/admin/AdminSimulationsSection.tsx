@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FlaskConical, ChevronRight, Lock, LockOpen } from 'lucide-react'
+import { FlaskConical, ChevronRight, Lock, LockOpen, Trash2 } from 'lucide-react'
 import type { SimulationResponse } from '@simulador/shared'
 import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
-import { CardActions, SectionHeader } from '@/components/shared'
+import { SectionHeader } from '@/components/shared'
 import { simulationsService } from '@/services/simulations.service'
 
 interface Props {
@@ -86,7 +86,7 @@ export function AdminSimulationsSection({ simulations, onReload, showToast }: Pr
                         <span className="font-mono">{sim.startYear}/{String(sim.startMonth).padStart(2,'0')}/{String(sim.startDay).padStart(2,'0')}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <Tooltip content="Ver simulación">
                         <button
                           onClick={() => sim.group && router.push(`/grupo/${sim.groupId}/simulacion/${sim.id}`)}
@@ -104,8 +104,12 @@ export function AdminSimulationsSection({ simulations, onReload, showToast }: Pr
                           {sim.isLocked ? <LockOpen className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                         </button>
                       </Tooltip>
+                      <Tooltip content="Eliminar simulación">
+                        <button onClick={() => setDeleteId(sim.id)} className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-950/30 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
                     </div>
-                    <CardActions onEdit={() => router.push(`/grupo/${sim.groupId}/simulacion/${sim.id}`)} onDelete={() => setDeleteId(sim.id)} />
                   </div>
                 </CardContent>
               </Card>

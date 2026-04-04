@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sprout, LogOut, Users, FlaskConical, BookOpen, BarChart3, Shield, Database } from 'lucide-react'
+import { Sprout, LogOut, Users, FlaskConical, BookOpen, BarChart3, Shield } from 'lucide-react'
 import type { GroupResponse, GroupStatResponse, SimulationResponse } from '@simulador/shared'
 import { Toast, Tooltip } from '@/components/ui'
 import { FloatingNav }             from '@/components/shared'
@@ -15,10 +15,9 @@ import { AdminAnalyticsSection }   from '@/features/admin/AdminAnalyticsSection'
 import { AdminSimulationsSection } from '@/features/admin/AdminSimulationsSection'
 import { AdminMembersSection }     from '@/features/admin/AdminMembersSection'
 import { AdminEntriesSection }     from '@/features/admin/AdminEntriesSection'
-import { UsuariosSection }         from '@/features/admin/UsuariosSection'
-import { BackupSection }           from '@/features/admin/BackupSection'
+import { AdminSection }            from '@/features/admin/AdminSection'
 
-type Tab = 'grupos' | 'simulaciones' | 'integrantes' | 'sesiones' | 'analytics' | 'usuarios' | 'backup'
+type Tab = 'grupos' | 'simulaciones' | 'integrantes' | 'sesiones' | 'analytics' | 'admin'
 
 const TABS: NavTab<Tab>[] = [
   { id: 'grupos',       label: 'Grupos',       icon: Users        },
@@ -26,8 +25,7 @@ const TABS: NavTab<Tab>[] = [
   { id: 'integrantes',  label: 'Integrantes',  icon: Users        },
   { id: 'sesiones',     label: 'Sesiones',     icon: BookOpen     },
   { id: 'analytics',   label: 'Analytics',    icon: BarChart3    },
-  { id: 'usuarios',    label: 'Usuarios',     icon: Shield       },
-  { id: 'backup',      label: 'Backup',       icon: Database     },
+  { id: 'admin',       label: 'Admin',        icon: Shield       },
 ]
 
 export default function AdminPage() {
@@ -94,17 +92,15 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-20 page-wrapper space-y-6">
-        {/* Tab content */}
-        {tab === 'grupos'       && <AdminGroupsSection      groups={groups}           onReload={load}  showToast={showToast} />}
-        {tab === 'simulaciones' && <AdminSimulationsSection  simulations={simulations} onReload={load}  showToast={showToast} />}
-        {tab === 'integrantes'  && <AdminMembersSection      groups={groups}           showToast={showToast} />}
+        {tab === 'grupos'       && <AdminGroupsSection      groups={groups}                        onReload={load} showToast={showToast} />}
+        {tab === 'simulaciones' && <AdminSimulationsSection  simulations={simulations} groups={groups} onReload={load} showToast={showToast} />}
+        {tab === 'integrantes'  && <AdminMembersSection      groups={groups}                        showToast={showToast} />}
         {tab === 'sesiones'     && simulations.length > 0 && <AdminEntriesSection simulations={simulations} showToast={showToast} />}
         {tab === 'sesiones'     && simulations.length === 0 && (
           <p className="text-sm text-zinc-600 text-center py-8">No hay simulaciones todavía.</p>
         )}
         {tab === 'analytics'   && <AdminAnalyticsSection stats={stats} groups={groups} simulations={simulations} />}
-        {tab === 'usuarios'    && <UsuariosSection showToast={showToast} />}
-        {tab === 'backup'      && <BackupSection   showToast={showToast} reloadAll={load} />}
+        {tab === 'admin'       && <AdminSection showToast={showToast} reloadAll={load} />}
       </main>
 
       <FloatingNav tabs={TABS} active={tab} onTabChange={setTab} />

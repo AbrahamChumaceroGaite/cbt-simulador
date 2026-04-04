@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip,
@@ -6,7 +7,7 @@ import {
 } from 'recharts'
 import { BarChart3, TrendingUp, TrendingDown, Minus, Users, FlaskConical, BookOpen, Leaf } from 'lucide-react'
 import type { GroupStatResponse, GroupResponse, SimulationResponse } from '@simulador/shared'
-import { Badge, Card, CardContent } from '@/components/ui'
+import { Badge, Card, CardContent, Select } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 
 interface Props {
@@ -55,12 +56,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function AdminAnalyticsSection({ stats, groups, simulations }: Props) {
   const router = useRouter()
+  const [course, setCourse] = useState('')
 
-  const totalMembers  = groups.reduce((a, g) => a + (g._count?.members ?? 0), 0)
-  const totalSessions = simulations.reduce((a, s) => a + (s._count?.entries ?? 0), 0)
+  const courses = Array.from(new Set(groups.map(g => g.course))).sort()
 
-  const withData = stats.filter(s => s.totalEntries > 0)
-  const ranked   = [...stats].sort((a, b) => (b.bestHeight ?? 0) - (a.bestHeight ?? 0))
+  // Build a groupId → course map from groups
+  const groupCourse: Record<string, string> = {}
+  groups.forEach(g => { groupCourse[g.id] = g.course })
+
+  const filteredStats = course ? stats.filter(s => groupCourse[s.id] === course || s.course === course) : stats
+  const filteredSims  = course ? simulations.filter(s => {
+    const g = groups.find(g => g.id === s.groupId)
+    return g?.course === course
+  }) : simulations
+
+  const totalMembers  = groups.filter(g => !course || g.course === course).reduce((a, g) => a + (g._count?.members ?? 0), 0)
+  const totalSessions = filteredSims.reduce((a, s) => a + (s._count?.entries ?? 0), 0)
+  const filteredGroups = course ? groups.filter(g => g.course === course) : groups
+
+  const withData = filteredStats.filter(s => s.totalEntries > 0)
+  const ranked   = [...filteredStats].sort((a, b) => (b.bestHeight ?? 0) - (a.bestHeight ?? 0))
+
+  const CourseFilter = courses.length > 0 ? (
+    <Select value={course} onChange={e => setCourse(e.target.value)} className="text-xs h-8">
+      <option value="">Todos los cursos</option>
+      {courses.map(c => <option key={c} value={c}>{c}</option>)}
+    </Select>
+  ) : null
 
   // ── Chart data ──────────────────────────────────────────────────────────────
   const heightData = withData
@@ -81,12 +103,15 @@ export function AdminAnalyticsSection({ stats, groups, simulations }: Props) {
 
       {/* ── Stats cards ──────────────────────────────────────────────────── */}
       <div>
-        <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Resumen general</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">Resumen general</p>
+          {CourseFilter}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={Users}        color="text-emerald-400" value={groups.length}      label="Grupos" />
-          <StatCard icon={FlaskConical} color="text-blue-400"    value={simulations.length} label="Simulaciones" />
-          <StatCard icon={Users}        color="text-zinc-400"    value={totalMembers}        label="Integrantes" />
-          <StatCard icon={BookOpen}     color="text-amber-400"   value={totalSessions}       label="Sesiones registradas" />
+          <StatCard icon={Users}        color="text-emerald-400" value={filteredGroups.length}  label="Grupos" />
+          <StatCard icon={FlaskConical} color="text-blue-400"    value={filteredSims.length}     label="Simulaciones" />
+          <StatCard icon={Users}        color="text-zinc-400"    value={totalMembers}             label="Integrantes" />
+          <StatCard icon={BookOpen}     color="text-amber-400"   value={totalSessions}            label="Sesiones registradas" />
         </div>
       </div>
 

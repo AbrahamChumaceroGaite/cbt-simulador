@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sprout, Plus, ChevronRight, Copy, CheckCheck, Users, Pencil, Trash2 } from 'lucide-react'
 import type { GroupResponse } from '@simulador/shared'
-import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
+import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination, Select } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 import { groupsService } from '@/services/groups.service'
 import { GroupForm }     from './GroupForm'
@@ -21,6 +21,7 @@ export function AdminGroupsSection({ groups, onReload, showToast }: Props) {
   const [page, setPage]             = useState(0)
   const [pageSize, setPageSize]     = useState(10)
   const [search, setSearch]         = useState('')
+  const [course, setCourse]         = useState('')
   const [copied, setCopied]         = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [editGroup, setEditGroup]   = useState<Group | null>(null)
@@ -67,9 +68,21 @@ export function AdminGroupsSection({ groups, onReload, showToast }: Props) {
     } catch (err: any) { showToast(err.message ?? 'Error', false) }
   }
 
+  const courses  = Array.from(new Set(groups.map(g => g.course))).sort()
   const q        = search.toLowerCase()
-  const filtered = groups.filter(g => !q || g.name.toLowerCase().includes(q) || g.code.toLowerCase().includes(q) || g.course.toLowerCase().includes(q))
+  const filtered = groups.filter(g => {
+    if (course && g.course !== course) return false
+    if (!q) return true
+    return g.name.toLowerCase().includes(q) || g.code.toLowerCase().includes(q)
+  })
   const paged    = filtered.slice(page * pageSize, (page + 1) * pageSize)
+
+  const CourseFilter = courses.length > 0 ? (
+    <Select value={course} onChange={e => { setCourse(e.target.value); setPage(0) }} className="text-xs h-8">
+      <option value="">Todos los cursos</option>
+      {courses.map(c => <option key={c} value={c}>{c}</option>)}
+    </Select>
+  ) : null
 
   return (
     <section className="space-y-3 animate-in fade-in duration-300">
@@ -77,9 +90,10 @@ export function AdminGroupsSection({ groups, onReload, showToast }: Props) {
         icon={Users}
         iconClass="text-emerald-400"
         title="Grupos"
-        subtitle={`${groups.length} grupos registrados`}
+        subtitle={`${filtered.length} de ${groups.length} grupos`}
         search={search}
         onSearch={v => { setSearch(v); setPage(0) }}
+        filters={CourseFilter ?? undefined}
         actions={
           <Tooltip content="Nuevo grupo">
             <Button size="sm" onClick={() => { setForm({ name: '', course: 'S2A', plant: 'Lechuga' }); setShowCreate(true) }}>

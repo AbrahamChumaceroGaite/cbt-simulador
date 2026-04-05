@@ -2,8 +2,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FlaskConical, ChevronRight, Lock, LockOpen, Trash2, Pencil } from 'lucide-react'
-import type { GroupResponse, SimulationResponse, SimulationUpdateInput } from '@simulador/shared'
+import type { GroupResponse, SimulationResponse } from '@simulador/shared'
 import { Button, Card, CardContent, Input, Label, Modal, Select, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
+// Edit is name-only — full param editing happens inside the simulation detail page
 import { SectionHeader } from '@/components/shared'
 import { simulationsService } from '@/services/simulations.service'
 
@@ -14,47 +15,6 @@ interface Props {
   showToast:   (msg: string, ok?: boolean) => void
 }
 
-type EditForm = {
-  name:               string
-  description:        string
-  plantName:          string
-  initialHeight:      string
-  baseGrowth:         string
-  optimalTemp:        string
-  optimalHumidity:    string
-  optimalLight:       string
-  officialPrediction: string
-  predictionNote:     string
-  startMonth:         string
-  startYear:          string
-  startDay:           string
-  projDays:           string
-}
-
-function simToForm(sim: SimulationResponse): EditForm {
-  return {
-    name:               sim.name,
-    description:        sim.description ?? '',
-    plantName:          sim.plantName ?? '',
-    initialHeight:      String(sim.initialHeight),
-    baseGrowth:         String(sim.baseGrowth),
-    optimalTemp:        String(sim.optimalTemp),
-    optimalHumidity:    String(sim.optimalHumidity),
-    optimalLight:       String(sim.optimalLight),
-    officialPrediction: sim.officialPrediction != null ? String(sim.officialPrediction) : '',
-    predictionNote:     sim.predictionNote ?? '',
-    startMonth:         String(sim.startMonth),
-    startYear:          String(sim.startYear),
-    startDay:           String(sim.startDay),
-    projDays:           String(sim.projDays),
-  }
-}
-
-function n(v: string): number | undefined {
-  const x = parseFloat(v); return isNaN(x) ? undefined : x
-}
-
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
 export function AdminSimulationsSection({ simulations, groups, onReload, showToast }: Props) {
   const router = useRouter()
@@ -65,39 +25,23 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
   const [editSim, setEditSim]   = useState<SimulationResponse | null>(null)
-  const [form, setForm]         = useState<EditForm | null>(null)
+  const [editName, setEditName] = useState('')
   const [saving, setSaving]     = useState(false)
 
   const courses = Array.from(new Set(groups.map(g => g.course))).sort()
 
   function openEdit(sim: SimulationResponse) {
-    setForm(simToForm(sim))
+    setEditName(sim.name)
     setEditSim(sim)
   }
 
   async function saveEdit() {
-    if (!editSim || !form) return
+    if (!editSim || !editName.trim()) return
     setSaving(true)
     try {
-      const dto: SimulationUpdateInput = {
-        name:               form.name,
-        description:        form.description,
-        plantName:          form.plantName,
-        initialHeight:      n(form.initialHeight),
-        baseGrowth:         n(form.baseGrowth),
-        optimalTemp:        n(form.optimalTemp),
-        optimalHumidity:    n(form.optimalHumidity),
-        optimalLight:       n(form.optimalLight),
-        officialPrediction: form.officialPrediction !== '' ? n(form.officialPrediction) : null,
-        predictionNote:     form.predictionNote,
-        startMonth:         n(form.startMonth),
-        startYear:          n(form.startYear),
-        startDay:           n(form.startDay),
-        projDays:           n(form.projDays),
-      }
-      const { message } = await simulationsService.update(editSim.id, dto)
+      const { message } = await simulationsService.update(editSim.id, { name: editName.trim() })
       showToast(message)
-      setEditSim(null); setForm(null); onReload()
+      setEditSim(null); onReload()
     } catch (err: any) { showToast(err.message ?? 'Error', false) }
     finally { setSaving(false) }
   }
@@ -217,82 +161,25 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
         </>
       )}
 
-      {/* Edit modal */}
-      <Modal open={!!editSim} onClose={() => { setEditSim(null); setForm(null) }} title="Editar simulación" lg>
-        {form && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <Label>Nombre</Label>
-                <Input value={form.name} onChange={e => setForm(p => p && ({ ...p, name: e.target.value }))} autoFocus />
-              </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>Descripción</Label>
-                <Input value={form.description} onChange={e => setForm(p => p && ({ ...p, description: e.target.value }))} placeholder="Opcional" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Nombre de planta</Label>
-                <Input value={form.plantName} onChange={e => setForm(p => p && ({ ...p, plantName: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Días proyectados</Label>
-                <Input type="number" value={form.projDays} onChange={e => setForm(p => p && ({ ...p, projDays: e.target.value }))} />
-              </div>
-            </div>
-
-            <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest pt-1">Fecha de inicio</p>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label>Mes</Label>
-                <Select value={form.startMonth} onChange={e => setForm(p => p && ({ ...p, startMonth: e.target.value }))}>
-                  {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Año</Label>
-                <Input type="number" value={form.startYear} onChange={e => setForm(p => p && ({ ...p, startYear: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Día inicial (0 = sem. 1)</Label>
-                <Input type="number" min={0} max={30} value={form.startDay} onChange={e => setForm(p => p && ({ ...p, startDay: e.target.value }))} />
-              </div>
-            </div>
-
-            <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest pt-1">Parámetros de crecimiento</p>
-            <div className="grid grid-cols-2 gap-3">
-              {([
-                { key: 'initialHeight',   label: 'Altura inicial (cm)' },
-                { key: 'baseGrowth',      label: 'Crecimiento base (cm/día)' },
-                { key: 'optimalTemp',     label: 'Temp. óptima (°C)' },
-                { key: 'optimalHumidity', label: 'Humedad óptima (%)' },
-                { key: 'optimalLight',    label: 'Luz óptima (h)' },
-              ] as const).map(({ key, label }) => (
-                <div key={key} className="space-y-1.5">
-                  <Label>{label}</Label>
-                  <Input type="number" step="0.01" value={form[key]}
-                    onChange={e => setForm(p => p && ({ ...p, [key]: e.target.value }))} />
-                </div>
-              ))}
-              <div className="space-y-1.5">
-                <Label>Predicción oficial (cm)</Label>
-                <Input type="number" step="0.1" placeholder="Sin definir" value={form.officialPrediction}
-                  onChange={e => setForm(p => p && ({ ...p, officialPrediction: e.target.value }))} />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Nota de predicción</Label>
-              <Input value={form.predictionNote} onChange={e => setForm(p => p && ({ ...p, predictionNote: e.target.value }))} placeholder="Opcional" />
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button variant="outline" onClick={() => { setEditSim(null); setForm(null) }} className="flex-1">Cancelar</Button>
-              <Button onClick={saveEdit} disabled={saving || !form.name.trim()} className="flex-1">
-                {saving ? 'Guardando…' : 'Guardar cambios'}
-              </Button>
-            </div>
+      {/* Edit modal — name only; full params are edited inside the simulation detail page */}
+      <Modal open={!!editSim} onClose={() => setEditSim(null)} title="Renombrar simulación">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Nombre</Label>
+            <Input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveEdit()}
+              autoFocus
+            />
           </div>
-        )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setEditSim(null)} className="flex-1">Cancelar</Button>
+            <Button onClick={saveEdit} disabled={saving || !editName.trim()} className="flex-1">
+              {saving ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Delete modal */}

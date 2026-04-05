@@ -18,12 +18,13 @@ const delete_simulation_command_1 = require("./application/commands/delete-simul
 const simulation_repository_1 = require("./domain/simulation.repository");
 const simulation_repository_impl_1 = require("./infrastructure/simulation.repository.impl");
 const prisma_service_1 = require("../../infrastructure/prisma/prisma.service");
+const socket_module_1 = require("../../infrastructure/socket/socket.module");
 let SimulationModule = class SimulationModule {
 };
 exports.SimulationModule = SimulationModule;
 exports.SimulationModule = SimulationModule = __decorate([
     (0, common_1.Module)({
-        imports: [cqrs_1.CqrsModule],
+        imports: [cqrs_1.CqrsModule, socket_module_1.SocketModule],
         controllers: [simulation_controller_1.SimulationController],
         providers: [
             prisma_service_1.PrismaService,

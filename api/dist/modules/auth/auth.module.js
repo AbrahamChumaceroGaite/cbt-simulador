@@ -10,7 +10,12 @@ exports.AuthModule = void 0;
 const common_1 = require("@nestjs/common");
 const cqrs_1 = require("@nestjs/cqrs");
 const auth_controller_1 = require("./auth.controller");
+const user_controller_1 = require("./user.controller");
 const login_command_1 = require("./application/commands/login.command");
+const get_users_query_1 = require("./application/queries/get-users.query");
+const create_user_command_1 = require("./application/commands/create-user.command");
+const update_user_command_1 = require("./application/commands/update-user.command");
+const delete_user_command_1 = require("./application/commands/delete-user.command");
 const user_repository_1 = require("./domain/user.repository");
 const user_repository_impl_1 = require("./infrastructure/user.repository.impl");
 const group_repository_1 = require("../group/domain/group.repository");
@@ -22,10 +27,14 @@ exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [cqrs_1.CqrsModule],
-        controllers: [auth_controller_1.AuthController],
+        controllers: [auth_controller_1.AuthController, user_controller_1.UserController],
         providers: [
             prisma_service_1.PrismaService,
             login_command_1.LoginHandler,
+            get_users_query_1.GetUsersHandler,
+            create_user_command_1.CreateUserHandler,
+            update_user_command_1.UpdateUserHandler,
+            delete_user_command_1.DeleteUserHandler,
             { provide: user_repository_1.UserRepository, useClass: user_repository_impl_1.UserRepositoryImpl },
             { provide: group_repository_1.GroupRepository, useClass: group_repository_impl_1.GroupRepositoryImpl },
         ],

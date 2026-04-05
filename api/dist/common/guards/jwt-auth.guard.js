@@ -14,8 +14,13 @@ let JwtAuthGuard = class JwtAuthGuard {
     async canActivate(ctx) {
         const req = ctx.switchToHttp().getRequest();
         const cookie = req.headers.cookie ?? '';
-        const match = cookie.match(/cbt_plants_session=([^;]+)/);
-        const token = match?.[1];
+        const match = cookie.match(/(?:^|;\s*)cbt_plants_session=([^;]+)/);
+        let token = match?.[1];
+        if (!token) {
+            const auth = (req.headers.authorization ?? '');
+            if (auth.startsWith('Bearer '))
+                token = auth.slice(7);
+        }
         if (!token)
             throw new common_1.UnauthorizedException('No autenticado');
         try {

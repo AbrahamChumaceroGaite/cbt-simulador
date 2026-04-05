@@ -1,5 +1,6 @@
 export type { IApiResponse } from './types/api-response';
 export type { PlantasRole, SessionPayload } from './types/session.types';
+export type { UserResponse, CreateUserDto, UpdateUserDto, RestoreResult } from './types/user.types';
 export type { GroupResponse, GroupInput } from './types/group.types';
 export type { MemberResponse, MemberInput } from './types/member.types';
 export type { SimulationResponse, SimulationInput, SimulationUpdateInput } from './types/simulation.types';

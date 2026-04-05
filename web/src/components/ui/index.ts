@@ -14,3 +14,5 @@ export { Modal }                                                     from './mod
 export { Toast }                                                     from './toast'
 export { Combobox }                                                  from './combobox'
 export type { ComboboxOption }                                       from './combobox'
+export { Skeleton }                                                  from './skeleton'
+export { Checkbox }                                                  from './checkbox'

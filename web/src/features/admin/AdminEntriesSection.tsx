@@ -135,8 +135,10 @@ export function AdminEntriesSection({ simulations, showToast }: Props) {
       />
 
       {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="w-5 h-5 rounded-full border-2 border-zinc-700 border-t-emerald-400 animate-spin" />
+        <div className="space-y-2 py-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-14 w-full animate-pulse rounded-xl bg-zinc-800" />
+          ))}
         </div>
       ) : entries.length === 0 ? (
         <EmptyState

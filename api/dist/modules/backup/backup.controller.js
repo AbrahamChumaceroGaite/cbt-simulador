@@ -17,27 +17,45 @@ const common_1 = require("@nestjs/common");
 const backup_service_1 = require("./backup.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const admin_guard_1 = require("../../common/guards/admin.guard");
+const response_message_decorator_1 = require("../../common/decorators/response-message.decorator");
+const ALL_SECTIONS = ['groups', 'simulations', 'entries'];
 let BackupController = class BackupController {
     constructor(svc) {
         this.svc = svc;
     }
-    async download(res) {
-        const payload = await this.svc.export();
+    async download(res, sectionsParam) {
+        const sections = sectionsParam
+            ? sectionsParam.split(',').map(s => s.trim()).filter(s => ALL_SECTIONS.includes(s))
+            : [...ALL_SECTIONS];
+        const payload = await this.svc.export(sections);
         const date = new Date().toISOString().split('T')[0];
         const filename = `backup-plantas-${date}.json`;
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.send(JSON.stringify(payload, null, 2));
     }
+    restore(body) {
+        return this.svc.restore(body);
+    }
 };
 exports.BackupController = BackupController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Res)()),
+    __param(1, (0, common_1.Query)('sections')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], BackupController.prototype, "download", null);
+__decorate([
+    (0, common_1.Post)('restore'),
+    (0, common_1.HttpCode)(200),
+    (0, response_message_decorator_1.ResponseMessage)('Restauración completada'),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], BackupController.prototype, "download", null);
+], BackupController.prototype, "restore", null);
 exports.BackupController = BackupController = __decorate([
     (0, common_1.Controller)('backup'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),

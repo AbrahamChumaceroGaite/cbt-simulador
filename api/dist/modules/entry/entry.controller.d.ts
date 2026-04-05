@@ -7,4 +7,5 @@ export declare class EntryController {
     constructor(qb: QueryBus, cb: CommandBus);
     getBySimulation(simId: string): Promise<EntryResponse[]>;
     upsert(dto: UpsertEntryDto): Promise<EntryResponse>;
+    remove(id: string): Promise<void>;
 }

@@ -61,8 +61,14 @@ export default function AdminPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-      <div className="w-6 h-6 rounded-full border-2 border-zinc-700 border-t-emerald-400 animate-spin" />
+    <div className="min-h-screen bg-zinc-950 p-6 space-y-4">
+      <div className="h-12 w-48 animate-pulse rounded-xl bg-zinc-800" />
+      <div className="h-10 w-full animate-pulse rounded-xl bg-zinc-800" />
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-14 w-full animate-pulse rounded-xl bg-zinc-800" />
+        ))}
+      </div>
     </div>
   )
 

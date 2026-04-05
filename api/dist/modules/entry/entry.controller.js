@@ -17,7 +17,9 @@ const common_1 = require("@nestjs/common");
 const cqrs_1 = require("@nestjs/cqrs");
 const get_entries_query_1 = require("./application/queries/get-entries.query");
 const upsert_entry_command_1 = require("./application/commands/upsert-entry.command");
+const delete_entry_command_1 = require("./application/commands/delete-entry.command");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const admin_guard_1 = require("../../common/guards/admin.guard");
 const response_message_decorator_1 = require("../../common/decorators/response-message.decorator");
 let EntryController = class EntryController {
     constructor(qb, cb) {
@@ -29,6 +31,9 @@ let EntryController = class EntryController {
     }
     upsert(dto) {
         return this.cb.execute(new upsert_entry_command_1.UpsertEntryCommand(dto));
+    }
+    remove(id) {
+        return this.cb.execute(new delete_entry_command_1.DeleteEntryCommand(id));
     }
 };
 exports.EntryController = EntryController;
@@ -48,6 +53,16 @@ __decorate([
     __metadata("design:paramtypes", [upsert_entry_command_1.UpsertEntryDto]),
     __metadata("design:returntype", Promise)
 ], EntryController.prototype, "upsert", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, common_1.HttpCode)(200),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
+    (0, response_message_decorator_1.ResponseMessage)('Sesión eliminada'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], EntryController.prototype, "remove", null);
 exports.EntryController = EntryController = __decorate([
     (0, common_1.Controller)('entries'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

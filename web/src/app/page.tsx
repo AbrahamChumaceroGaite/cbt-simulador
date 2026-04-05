@@ -17,8 +17,12 @@ export default function HomePage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-      <div className="w-6 h-6 rounded-full border-2 border-zinc-700 border-t-emerald-400 animate-spin" />
+    <div className="min-h-screen bg-zinc-950 p-6 flex flex-col items-center justify-center gap-3">
+      <div className="w-full max-w-sm space-y-3">
+        <div className="h-12 w-full animate-pulse rounded-xl bg-zinc-800" />
+        <div className="h-12 w-full animate-pulse rounded-xl bg-zinc-800" />
+        <div className="h-8 w-2/3 animate-pulse rounded-lg bg-zinc-800" />
+      </div>
     </div>
   )
 }

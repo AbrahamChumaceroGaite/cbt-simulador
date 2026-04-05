@@ -21,6 +21,7 @@ const entry_module_1 = require("./modules/entry/entry.module");
 const climate_module_1 = require("./modules/climate/climate.module");
 const analytics_module_1 = require("./modules/analytics/analytics.module");
 const backup_module_1 = require("./modules/backup/backup.module");
+const socket_module_1 = require("./infrastructure/socket/socket.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -31,6 +32,7 @@ exports.AppModule = AppModule = __decorate([
             cqrs_1.CqrsModule.forRoot(),
             auth_module_1.AuthModule, group_module_1.GroupModule, member_module_1.MemberModule, simulation_module_1.SimulationModule,
             entry_module_1.EntryModule, climate_module_1.ClimateModule, analytics_module_1.AnalyticsModule, backup_module_1.BackupModule,
+            socket_module_1.SocketModule,
         ],
         providers: [{ provide: core_1.APP_INTERCEPTOR, useClass: transform_interceptor_1.TransformInterceptor }],
     })

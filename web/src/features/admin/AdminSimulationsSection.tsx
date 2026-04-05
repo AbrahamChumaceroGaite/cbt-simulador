@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FlaskConical, ChevronRight, Lock, LockOpen, Trash2, Pencil } from 'lucide-react'
 import type { GroupResponse, SimulationResponse } from '@simulador/shared'
-import { Button, Card, CardContent, Input, Label, Modal, Badge, EmptyState, Tooltip, Pagination, Combobox } from '@/components/ui'
+import { Button, Card, CardContent, Input, Label, Modal, Badge, EmptyState, Tooltip, Pagination, Combobox, Checkbox } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 import { simulationsService } from '@/services/simulations.service'
 
@@ -152,11 +152,9 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
       ) : (
         <>
           <div className="flex items-center gap-2 px-1">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={allPageSelected}
-              onChange={togglePageSelect}
-              className="w-3.5 h-3.5 rounded accent-emerald-500"
+              onCheckedChange={() => togglePageSelect()}
             />
             <span className="text-xs text-zinc-600">Seleccionar página</span>
           </div>
@@ -166,11 +164,9 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
               <Card key={sim.id} className={selected.has(sim.id) ? 'ring-1 ring-emerald-500/40' : ''}>
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selected.has(sim.id)}
-                      onChange={() => toggleSelect(sim.id)}
-                      className="w-3.5 h-3.5 rounded accent-emerald-500 flex-shrink-0"
+                      onCheckedChange={() => toggleSelect(sim.id)}
                     />
                     <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
                       <FlaskConical className="w-4 h-4 text-zinc-400" />

@@ -191,3 +191,17 @@ input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
 .recharts-cartesian-grid-vertical line { stroke: #27272a !important; }
 .recharts-text { fill: #71717a !important; font-size: 11px !important; }
 .recharts-tooltip-wrapper { outline: none !important; }
+
+
+/* ── Login animated gradient text ───────────────────────────────────────────── */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50% }
+  50%       { background-position: 100% 50% }
+}
+.animate-gradient-text {
+  background-size: 300% 300%;
+  animation: gradient-shift 5s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

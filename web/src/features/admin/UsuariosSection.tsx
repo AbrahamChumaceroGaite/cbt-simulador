@@ -153,8 +153,8 @@ export function UsuariosSection({ showToast }: Props) {
           </div>
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1">Cancelar</Button>
-            <Button onClick={createUser} disabled={saving || !cForm.code.trim() || !cForm.password.trim()} className="flex-1">
-              {saving ? 'Guardando…' : 'Crear'}
+            <Button onClick={createUser} disabled={saving || !cForm.code.trim() || !cForm.password.trim()} loading={saving} className="flex-1">
+              Crear
             </Button>
           </div>
         </div>
@@ -182,8 +182,8 @@ export function UsuariosSection({ showToast }: Props) {
           </div>
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={() => setEditUser(null)} className="flex-1">Cancelar</Button>
-            <Button onClick={updateUser} disabled={saving} className="flex-1">
-              {saving ? 'Guardando…' : 'Guardar'}
+            <Button onClick={updateUser} disabled={saving} loading={saving} className="flex-1">
+              Guardar
             </Button>
           </div>
         </div>

@@ -1,5 +1,5 @@
 'use client'
-import { Button, Input, Label, Select } from '@/components/ui'
+import { Button, Input, Label, Combobox } from '@/components/ui'
 
 interface GroupFormProps {
   form: { name: string; course: string; plant: string }
@@ -8,6 +8,9 @@ interface GroupFormProps {
   onSave: () => void
   saving: boolean
 }
+
+const COURSE_OPTS = ['S2A', 'S2B', 'S2C'].map(c => ({ value: c, label: c }))
+const PLANT_OPTS  = ['Lechuga', 'Tomate', 'Tomate Cherry'].map(p => ({ value: p, label: p }))
 
 export function GroupForm({ form, setForm, onCancel, onSave, saving }: GroupFormProps) {
   return (
@@ -25,21 +28,25 @@ export function GroupForm({ form, setForm, onCancel, onSave, saving }: GroupForm
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Curso</Label>
-          <Select value={form.course} onChange={e => setForm(p => ({ ...p, course: e.target.value }))}>
-            {['S2A', 'S2B', 'S2C'].map(c => <option key={c}>{c}</option>)}
-          </Select>
+          <Combobox
+            value={form.course}
+            onChange={v => setForm(p => ({ ...p, course: v }))}
+            options={COURSE_OPTS}
+          />
         </div>
         <div className="space-y-1.5">
           <Label>Planta</Label>
-          <Select value={form.plant} onChange={e => setForm(p => ({ ...p, plant: e.target.value }))}>
-            {['Lechuga', 'Tomate', 'Tomate Cherry'].map(p => <option key={p}>{p}</option>)}
-          </Select>
+          <Combobox
+            value={form.plant}
+            onChange={v => setForm(p => ({ ...p, plant: v }))}
+            options={PLANT_OPTS}
+          />
         </div>
       </div>
       <div className="flex gap-2 pt-1">
         <Button variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>
-        <Button onClick={onSave} disabled={saving || !form.name.trim()} className="flex-1">
-          {saving ? 'Guardando...' : 'Guardar'}
+        <Button onClick={onSave} disabled={saving || !form.name.trim()} loading={saving} className="flex-1">
+          Guardar
         </Button>
       </div>
     </div>

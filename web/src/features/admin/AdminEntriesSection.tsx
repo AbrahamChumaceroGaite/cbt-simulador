@@ -275,8 +275,8 @@ function EntryForm({ form, setForm, onCancel, onSave, saving, isEdit }: {
       </div>
       <div className="flex gap-2 pt-1">
         <Button variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>
-        <Button onClick={onSave} disabled={saving} className="flex-1">
-          {saving ? 'Guardando…' : isEdit ? 'Actualizar' : 'Crear sesión'}
+        <Button onClick={onSave} disabled={saving} loading={saving} className="flex-1">
+          {isEdit ? 'Actualizar' : 'Crear sesión'}
         </Button>
       </div>
     </div>

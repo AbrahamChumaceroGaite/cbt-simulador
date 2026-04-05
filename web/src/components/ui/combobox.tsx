@@ -17,7 +17,7 @@ interface Props {
   size?:        'sm' | 'default'
 }
 
-export function Combobox({ value, onChange, options, placeholder = 'Seleccionar...', className, size = 'default' }: Props) {
+export function Combobox({ value, onChange, options, placeholder = 'Seleccionar...', className, size = 'sm' }: Props) {
   const [open, setOpen]   = useState(false)
   const [query, setQuery] = useState('')
   const ref               = useRef<HTMLDivElement>(null)

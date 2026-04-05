@@ -235,8 +235,8 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setEditSim(null)} className="flex-1">Cancelar</Button>
-            <Button onClick={saveEdit} disabled={saving || !editName.trim()} className="flex-1">
-              {saving ? 'Guardando…' : 'Guardar'}
+            <Button onClick={saveEdit} disabled={saving || !editName.trim()} loading={saving} className="flex-1">
+              Guardar
             </Button>
           </div>
         </div>

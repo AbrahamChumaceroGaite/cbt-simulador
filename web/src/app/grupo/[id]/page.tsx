@@ -200,8 +200,8 @@ export default function GroupPage({ params }: { params: { id: string } }) {
           </div>
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1">Cancelar</Button>
-            <Button onClick={createSim} disabled={creating || !simName.trim()} className="flex-1">
-              {creating ? 'Creando...' : 'Crear'}
+            <Button onClick={createSim} disabled={creating || !simName.trim()} loading={creating} className="flex-1">
+              Crear
             </Button>
           </div>
         </div>

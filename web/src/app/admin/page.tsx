@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Sprout, LogOut, Users, FlaskConical, BookOpen, BarChart3, Shield } from 'lucide-react'
 import type { GroupResponse, GroupStatResponse, SimulationResponse } from '@simulador/shared'
 import { Toast, Tooltip } from '@/components/ui'
-import { FloatingNav }             from '@/components/shared'
+import { FloatingNav, LogoutModal } from '@/components/shared'
 import type { NavTab }             from '@/components/shared'
 import { groupsService }           from '@/services/groups.service'
 import { analyticsService }        from '@/services/analytics.service'
@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [simulations, setSimulations]   = useState<SimulationResponse[]>([])
   const [loading, setLoading]           = useState(true)
   const [toast, setToast]               = useState<{ msg: string; ok: boolean } | null>(null)
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false)
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -56,6 +57,7 @@ export default function AdminPage() {
   useEffect(() => { load() }, [])
 
   async function logout() {
+    setLogoutModalOpen(false)
     await authService.logout()
     router.push('/login')
   }
@@ -89,7 +91,7 @@ export default function AdminPage() {
           <p className="text-xs text-zinc-500">Plant Diary · S.T.E.A.M #2</p>
         </div>
         <Tooltip content="Cerrar sesión" side="bottom">
-          <button onClick={logout} className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+          <button onClick={() => setLogoutModalOpen(true)} className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors">
             <LogOut className="w-4 h-4" />
           </button>
         </Tooltip>
@@ -107,6 +109,7 @@ export default function AdminPage() {
       </main>
 
       <FloatingNav tabs={TABS} active={tab} onTabChange={setTab} />
+      <LogoutModal open={logoutModalOpen} onConfirm={logout} onCancel={() => setLogoutModalOpen(false)} />
 
       <footer className="relative z-10 text-center py-6 text-zinc-700 text-xs">
         Ing. Abraham CG &mdash; 2026 · All rights reserved

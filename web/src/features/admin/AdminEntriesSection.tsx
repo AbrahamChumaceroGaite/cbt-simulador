@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { BookOpen, Plus, Pencil, Trash2 } from 'lucide-react'
 import type { SimulationResponse, EntryResponse } from '@simulador/shared'
-import { Button, EmptyState, Input, Label, Modal, Select, Pagination, Tooltip } from '@/components/ui'
+import { Button, EmptyState, Input, Label, Modal, Pagination, Tooltip, Combobox } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 import { entriesService } from '@/services/entries.service'
 
@@ -28,7 +28,7 @@ export function AdminEntriesSection({ simulations, showToast }: Props) {
   const [entries, setEntries]   = useState<EntryResponse[]>([])
   const [loading, setLoading]   = useState(false)
   const [page, setPage]         = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(5)
 
   const [showCreate, setShowCreate] = useState(false)
   const [editEntry, setEditEntry]   = useState<EntryResponse | null>(null)
@@ -107,12 +107,12 @@ export function AdminEntriesSection({ simulations, showToast }: Props) {
   const paged      = entries.slice(page * pageSize, (page + 1) * pageSize)
   const selectedSim = simulations.find(s => s.id === selectedSimId)
 
+  const simOptions = simulations.map(s => ({
+    value: s.id,
+    label: s.group ? `${s.group.name} — ${s.name}` : s.name,
+  }))
   const SimFilter = (
-    <Select value={selectedSimId} onChange={e => setSelectedSimId(e.target.value)} className="text-xs h-8 max-w-xs">
-      {simulations.map(s => (
-        <option key={s.id} value={s.id}>{s.group ? `${s.group.name} — ` : ''}{s.name}</option>
-      ))}
-    </Select>
+    <Combobox value={selectedSimId} onChange={setSelectedSimId} options={simOptions} size="sm" className="w-56" />
   )
 
   return (

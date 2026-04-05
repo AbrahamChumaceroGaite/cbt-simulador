@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import { BarChart3, TrendingUp, TrendingDown, Minus, Users, FlaskConical, BookOpen, Leaf } from 'lucide-react'
 import type { GroupStatResponse, GroupResponse, SimulationResponse } from '@simulador/shared'
-import { Badge, Card, CardContent, Select } from '@/components/ui'
+import { Badge, Card, CardContent, Combobox } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 
 interface Props {
@@ -77,11 +77,12 @@ export function AdminAnalyticsSection({ stats, groups, simulations }: Props) {
   const withData = filteredStats.filter(s => s.totalEntries > 0)
   const ranked   = [...filteredStats].sort((a, b) => (b.bestHeight ?? 0) - (a.bestHeight ?? 0))
 
+  const courseOptions = [
+    { value: '', label: 'Todos los cursos' },
+    ...courses.map(c => ({ value: c, label: c })),
+  ]
   const CourseFilter = courses.length > 0 ? (
-    <Select value={course} onChange={e => setCourse(e.target.value)} className="text-xs h-8">
-      <option value="">Todos los cursos</option>
-      {courses.map(c => <option key={c} value={c}>{c}</option>)}
-    </Select>
+    <Combobox value={course} onChange={setCourse} options={courseOptions} size="sm" className="w-44" />
   ) : null
 
   // ── Chart data ──────────────────────────────────────────────────────────────

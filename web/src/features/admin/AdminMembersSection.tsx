@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Users, Plus, Pencil, Trash2 } from 'lucide-react'
 import type { GroupResponse, MemberResponse } from '@simulador/shared'
-import { Button, Card, CardContent, Modal, Input, Label, Select, EmptyState, Tooltip, Pagination } from '@/components/ui'
+import { Button, Card, CardContent, Modal, Input, Label, EmptyState, Tooltip, Pagination, Combobox } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 import { membersService } from '@/services/members.service'
 
@@ -19,7 +19,7 @@ export function AdminMembersSection({ groups, showToast }: Props) {
   const [loading, setLoading]   = useState(false)
   const [search, setSearch]     = useState('')
   const [page, setPage]         = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(5)
 
   const [showCreate, setShowCreate] = useState(false)
   const [editMember, setEditMember] = useState<MemberResponse | null>(null)
@@ -77,10 +77,9 @@ export function AdminMembersSection({ groups, showToast }: Props) {
   const filtered = members.filter(m => !q || m.name.toLowerCase().includes(q))
   const paged    = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
+  const groupOptions = groups.map(g => ({ value: g.id, label: `${g.name} (${g.course})` }))
   const GroupFilter = (
-    <Select value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} className="text-xs h-8">
-      {groups.map(g => <option key={g.id} value={g.id}>{g.name} ({g.course})</option>)}
-    </Select>
+    <Combobox value={selectedGroupId} onChange={setSelectedGroupId} options={groupOptions} size="sm" className="w-52" />
   )
 
   return (
@@ -191,9 +190,11 @@ function MemberForm({
       </div>
       <div className="space-y-1.5">
         <Label>Rol</Label>
-        <Select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}>
-          {ROLES.map(r => <option key={r}>{r}</option>)}
-        </Select>
+        <Combobox
+          value={form.role}
+          onChange={v => setForm(p => ({ ...p, role: v }))}
+          options={ROLES.map(r => ({ value: r, label: r }))}
+        />
       </div>
       <div className="flex gap-2 pt-1">
         <Button variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>

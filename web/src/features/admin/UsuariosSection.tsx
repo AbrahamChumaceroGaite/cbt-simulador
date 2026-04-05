@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Shield, Users } from 'lucide-react'
 import type { UserResponse, CreateUserDto, UpdateUserDto } from '@simulador/shared'
-import { Modal, Button, Input, Label, Select, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
+import { Modal, Button, Input, Label, Badge, EmptyState, Tooltip, Pagination, Combobox } from '@/components/ui'
 import { CardActions, SectionHeader } from '@/components/shared'
 import { usersService }   from '@/services/users.service'
 
@@ -17,7 +17,7 @@ export function UsuariosSection({ showToast }: Props) {
   const [users,      setUsers]      = useState<UserResponse[]>([])
   const [search,     setSearch]     = useState('')
   const [page,       setPage]       = useState(0)
-  const [pageSize,   setPageSize]   = useState(10)
+  const [pageSize,   setPageSize]   = useState(5)
   const [showCreate, setShowCreate] = useState(false)
   const [editUser,   setEditUser]   = useState<UserResponse | null>(null)
   const [deleteId,   setDeleteId]   = useState<string | null>(null)
@@ -141,10 +141,11 @@ export function UsuariosSection({ showToast }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label>Rol</Label>
-            <Select value={cForm.role} onChange={e => setCForm(p => ({ ...p, role: e.target.value as 'admin' | 'group' }))}>
-              <option value="admin">Admin</option>
-              <option value="group">Grupo</option>
-            </Select>
+            <Combobox
+              value={cForm.role}
+              onChange={v => setCForm(p => ({ ...p, role: v as 'admin' | 'group' }))}
+              options={[{ value: 'admin', label: 'Admin' }, { value: 'group', label: 'Grupo' }]}
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Contraseña</Label>

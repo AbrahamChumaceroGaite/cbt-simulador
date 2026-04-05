@@ -12,3 +12,5 @@ export { Tooltip }                                                   from './too
 export { Pagination }                                                from './pagination'
 export { Modal }                                                     from './modal'
 export { Toast }                                                     from './toast'
+export { Combobox }                                                  from './combobox'
+export type { ComboboxOption }                                       from './combobox'

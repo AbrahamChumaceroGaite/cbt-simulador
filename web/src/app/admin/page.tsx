@@ -13,16 +13,14 @@ import { simulationsService }      from '@/services/simulations.service'
 import { AdminGroupsSection }      from '@/features/admin/AdminGroupsSection'
 import { AdminAnalyticsSection }   from '@/features/admin/AdminAnalyticsSection'
 import { AdminSimulationsSection } from '@/features/admin/AdminSimulationsSection'
-import { AdminMembersSection }     from '@/features/admin/AdminMembersSection'
 import { AdminEntriesSection }     from '@/features/admin/AdminEntriesSection'
 import { AdminSection }            from '@/features/admin/AdminSection'
 
-type Tab = 'grupos' | 'simulaciones' | 'integrantes' | 'sesiones' | 'analytics' | 'admin'
+type Tab = 'grupos' | 'simulaciones' | 'sesiones' | 'analytics' | 'admin'
 
 const TABS: NavTab<Tab>[] = [
   { id: 'grupos',       label: 'Grupos',       icon: Users        },
   { id: 'simulaciones', label: 'Simulaciones', icon: FlaskConical },
-  { id: 'integrantes',  label: 'Integrantes',  icon: Users        },
   { id: 'sesiones',     label: 'Sesiones',     icon: BookOpen     },
   { id: 'analytics',   label: 'Analytics',    icon: BarChart3    },
   { id: 'admin',       label: 'Admin',        icon: Shield       },
@@ -94,7 +92,6 @@ export default function AdminPage() {
       <main className="max-w-3xl mx-auto px-4 pt-20 page-wrapper space-y-6">
         {tab === 'grupos'       && <AdminGroupsSection      groups={groups}                        onReload={load} showToast={showToast} />}
         {tab === 'simulaciones' && <AdminSimulationsSection  simulations={simulations} groups={groups} onReload={load} showToast={showToast} />}
-        {tab === 'integrantes'  && <AdminMembersSection      groups={groups}                        showToast={showToast} />}
         {tab === 'sesiones'     && simulations.length > 0 && <AdminEntriesSection simulations={simulations} showToast={showToast} />}
         {tab === 'sesiones'     && simulations.length === 0 && (
           <p className="text-sm text-zinc-600 text-center py-8">No hay simulaciones todavía.</p>

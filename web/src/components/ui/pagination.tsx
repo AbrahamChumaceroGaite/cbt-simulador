@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils'
 
 const PAGE_SIZES = [5, 10, 20, 50]
 
-export function Pagination({ page, totalItems, pageSize = 10, onPageSizeChange, onChange }: {
+export function Pagination({ page, totalItems, pageSize = 5, onPageSizeChange, onChange }: {
   page: number
   totalItems: number
   pageSize?: number

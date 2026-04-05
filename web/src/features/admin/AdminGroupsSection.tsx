@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sprout, Plus, ChevronRight, Copy, CheckCheck, Users, Pencil, Trash2 } from 'lucide-react'
 import type { GroupResponse } from '@simulador/shared'
-import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination, Select } from '@/components/ui'
+import { Button, Card, CardContent, Modal, Badge, EmptyState, Tooltip, Pagination, Combobox } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 import { groupsService } from '@/services/groups.service'
 import { GroupForm }     from './GroupForm'
@@ -19,7 +19,7 @@ interface Props {
 export function AdminGroupsSection({ groups, onReload, showToast }: Props) {
   const router = useRouter()
   const [page, setPage]             = useState(0)
-  const [pageSize, setPageSize]     = useState(10)
+  const [pageSize, setPageSize]     = useState(5)
   const [search, setSearch]         = useState('')
   const [course, setCourse]         = useState('')
   const [copied, setCopied]         = useState<string | null>(null)
@@ -77,11 +77,12 @@ export function AdminGroupsSection({ groups, onReload, showToast }: Props) {
   })
   const paged    = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
+  const courseOptions = [
+    { value: '', label: 'Todos los cursos' },
+    ...courses.map(c => ({ value: c, label: c })),
+  ]
   const CourseFilter = courses.length > 0 ? (
-    <Select value={course} onChange={e => { setCourse(e.target.value); setPage(0) }} className="text-xs h-8">
-      <option value="">Todos los cursos</option>
-      {courses.map(c => <option key={c} value={c}>{c}</option>)}
-    </Select>
+    <Combobox value={course} onChange={v => { setCourse(v); setPage(0) }} options={courseOptions} size="sm" className="w-44" />
   ) : null
 
   return (

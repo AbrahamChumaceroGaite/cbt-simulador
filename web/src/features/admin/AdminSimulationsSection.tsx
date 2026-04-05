@@ -3,8 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FlaskConical, ChevronRight, Lock, LockOpen, Trash2, Pencil } from 'lucide-react'
 import type { GroupResponse, SimulationResponse } from '@simulador/shared'
-import { Button, Card, CardContent, Input, Label, Modal, Select, Badge, EmptyState, Tooltip, Pagination } from '@/components/ui'
-// Edit is name-only — full param editing happens inside the simulation detail page
+import { Button, Card, CardContent, Input, Label, Modal, Badge, EmptyState, Tooltip, Pagination, Combobox } from '@/components/ui'
 import { SectionHeader } from '@/components/shared'
 import { simulationsService } from '@/services/simulations.service'
 
@@ -15,11 +14,10 @@ interface Props {
   showToast:   (msg: string, ok?: boolean) => void
 }
 
-
 export function AdminSimulationsSection({ simulations, groups, onReload, showToast }: Props) {
   const router = useRouter()
   const [page, setPage]         = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(5)
   const [search, setSearch]     = useState('')
   const [course, setCourse]     = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -27,6 +25,9 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
   const [editSim, setEditSim]   = useState<SimulationResponse | null>(null)
   const [editName, setEditName] = useState('')
   const [saving, setSaving]     = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting]       = useState(false)
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
   const courses = Array.from(new Set(groups.map(g => g.course))).sort()
 
@@ -55,6 +56,16 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
     } catch (err: any) { showToast(err.message ?? 'Error', false) }
   }
 
+  async function confirmBulkDelete() {
+    setBulkDeleting(true)
+    try {
+      await Promise.all(Array.from(selected).map(id => simulationsService.delete(id)))
+      showToast(`${selected.size} simulaciones eliminadas`)
+      setSelected(new Set()); setShowBulkConfirm(false); onReload()
+    } catch (err: any) { showToast(err.message ?? 'Error', false) }
+    finally { setBulkDeleting(false) }
+  }
+
   async function toggleLock(sim: SimulationResponse) {
     setToggling(sim.id)
     try {
@@ -64,7 +75,14 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
     finally { setToggling(null) }
   }
 
-  // Derive group course lookup
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
   const groupCourse: Record<string, string> = {}
   groups.forEach(g => { groupCourse[g.id] = g.course })
 
@@ -76,11 +94,29 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
   })
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
+  const allPageSelected = paged.length > 0 && paged.every(s => selected.has(s.id))
+
+  function togglePageSelect() {
+    if (allPageSelected) {
+      setSelected(prev => { const n = new Set(prev); paged.forEach(s => n.delete(s.id)); return n })
+    } else {
+      setSelected(prev => { const n = new Set(prev); paged.forEach(s => n.add(s.id)); return n })
+    }
+  }
+
+  const courseOptions = [
+    { value: '', label: 'Todos los cursos' },
+    ...courses.map(c => ({ value: c, label: c })),
+  ]
+
   const CourseFilter = courses.length > 0 ? (
-    <Select value={course} onChange={e => { setCourse(e.target.value); setPage(0) }} className="text-xs h-8">
-      <option value="">Todos los cursos</option>
-      {courses.map(c => <option key={c} value={c}>{c}</option>)}
-    </Select>
+    <Combobox
+      value={course}
+      onChange={v => { setCourse(v); setPage(0) }}
+      options={courseOptions}
+      size="sm"
+      className="w-44"
+    />
   ) : null
 
   return (
@@ -95,6 +131,18 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
         filters={CourseFilter ?? undefined}
       />
 
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-zinc-800/80 border border-zinc-700">
+          <span className="text-xs text-zinc-400">{selected.size} seleccionada{selected.size !== 1 ? 's' : ''}</span>
+          <div className="flex-1" />
+          <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>Limpiar</Button>
+          <Button variant="destructive" size="sm" onClick={() => setShowBulkConfirm(true)}>
+            <Trash2 className="w-3.5 h-3.5 mr-1" /> Eliminar {selected.size}
+          </Button>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={<FlaskConical className="w-10 h-10" />}
@@ -103,11 +151,27 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
         />
       ) : (
         <>
+          <div className="flex items-center gap-2 px-1">
+            <input
+              type="checkbox"
+              checked={allPageSelected}
+              onChange={togglePageSelect}
+              className="w-3.5 h-3.5 rounded accent-emerald-500"
+            />
+            <span className="text-xs text-zinc-600">Seleccionar página</span>
+          </div>
+
           <div className="space-y-2">
             {paged.map(sim => (
-              <Card key={sim.id}>
+              <Card key={sim.id} className={selected.has(sim.id) ? 'ring-1 ring-emerald-500/40' : ''}>
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(sim.id)}
+                      onChange={() => toggleSelect(sim.id)}
+                      className="w-3.5 h-3.5 rounded accent-emerald-500 flex-shrink-0"
+                    />
                     <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
                       <FlaskConical className="w-4 h-4 text-zinc-400" />
                     </div>
@@ -127,7 +191,7 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <Tooltip content="Ver simulación">
-                        <button onClick={() => sim.group && router.push(`/grupo/${sim.groupId}/simulacion/${sim.id}`)}
+                        <button onClick={() => router.push(`/grupo/${sim.groupId}/simulacion/${sim.id}`)}
                           className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
                           <ChevronRight className="w-4 h-4" />
                         </button>
@@ -138,7 +202,7 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
                           {sim.isLocked ? <LockOpen className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                         </button>
                       </Tooltip>
-                      <Tooltip content="Editar simulación">
+                      <Tooltip content="Renombrar">
                         <button onClick={() => openEdit(sim)}
                           className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors">
                           <Pencil className="w-3.5 h-3.5" />
@@ -161,7 +225,7 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
         </>
       )}
 
-      {/* Edit modal — name only; full params are edited inside the simulation detail page */}
+      {/* Edit modal — name only */}
       <Modal open={!!editSim} onClose={() => setEditSim(null)} title="Renombrar simulación">
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -182,13 +246,26 @@ export function AdminSimulationsSection({ simulations, groups, onReload, showToa
         </div>
       </Modal>
 
-      {/* Delete modal */}
+      {/* Delete single */}
       <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title="Eliminar simulación">
         <div className="space-y-4">
           <p className="text-sm text-zinc-400">¿Eliminar esta simulación? Se perderán todas sus sesiones y mediciones. Esta acción no se puede deshacer.</p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setDeleteId(null)} className="flex-1">Cancelar</Button>
             <Button variant="destructive" onClick={confirmDelete} className="flex-1">Eliminar</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk delete */}
+      <Modal open={showBulkConfirm} onClose={() => setShowBulkConfirm(false)} title="Eliminar simulaciones">
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-400">¿Eliminar <strong className="text-white">{selected.size}</strong> simulaciones? Se perderán todas sus sesiones y mediciones. Esta acción no se puede deshacer.</p>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowBulkConfirm(false)} className="flex-1">Cancelar</Button>
+            <Button variant="destructive" onClick={confirmBulkDelete} disabled={bulkDeleting} className="flex-1">
+              {bulkDeleting ? 'Eliminando…' : `Eliminar ${selected.size}`}
+            </Button>
           </div>
         </div>
       </Modal>

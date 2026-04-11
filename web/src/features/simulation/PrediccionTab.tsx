@@ -1,5 +1,6 @@
 'use client'
-import { Lock } from 'lucide-react'
+import { useState } from 'react'
+import { Lock, Save } from 'lucide-react'
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle, CardDescription, Input, Label, Textarea } from '@/components/ui'
 import { generateProjectionFromClimate, fmtDate, round1 } from '@/lib/utils'
 import type { Sim, ClimateDay, ProjPoint } from '@/lib/types'
@@ -10,10 +11,22 @@ interface PrediccionTabProps {
   /** Real climate data from page-level fetch (based on saved startMonth/startYear) */
   climateDays: ClimateDay[] | null
   onUpdate: (p: Partial<Sim>) => void
-  onLock: () => void
 }
 
-export function PrediccionTab({ sim, climateDays, onUpdate, onLock }: PrediccionTabProps) {
+type LocalState = { officialPrediction: number | null; predictionNote: string }
+
+export function PrediccionTab({ sim, climateDays, onUpdate }: PrediccionTabProps) {
+  const [local, setLocal] = useState<LocalState>({
+    officialPrediction: sim.officialPrediction,
+    predictionNote:     sim.predictionNote,
+  })
+  const [dirty, setDirty] = useState(false)
+
+  const set = <K extends keyof LocalState>(k: K, v: LocalState[K]) => {
+    setLocal(p => ({ ...p, [k]: v }))
+    setDirty(true)
+  }
+
   if (sim.isDemo) return <DemoOverview sim={sim} />
 
   const startYear  = sim.startYear  ?? new Date().getFullYear()
@@ -122,8 +135,8 @@ export function PrediccionTab({ sim, climateDays, onUpdate, onLock }: Prediccion
                 <div className="space-y-1.5">
                   <Label>Mi predicción (cm)</Label>
                   <Input type="number" step="0.1" min="0" max="200"
-                    value={sim.officialPrediction ?? ''}
-                    onChange={e => onUpdate({ officialPrediction: parseFloat(e.target.value) || null })}
+                    value={local.officialPrediction ?? ''}
+                    onChange={e => set('officialPrediction', parseFloat(e.target.value) || null)}
                     className="text-xl font-bold h-12 font-mono" placeholder="0.0" />
                 </div>
                 <div className="bg-zinc-800/50 rounded-xl p-3 flex flex-col justify-center">
@@ -133,11 +146,18 @@ export function PrediccionTab({ sim, climateDays, onUpdate, onLock }: Prediccion
               </div>
               <div className="space-y-1.5">
                 <Label>¿Por qué ese número? (mínimo 2 razones)</Label>
-                <Textarea rows={3} value={sim.predictionNote}
-                  onChange={e => onUpdate({ predictionNote: e.target.value })}
+                <Textarea rows={3} value={local.predictionNote}
+                  onChange={e => set('predictionNote', e.target.value)}
                   placeholder="Ej: Elegimos X cm porque la tasa base da Y pero el clima de ese mes..." />
               </div>
-              <Button onClick={onLock} disabled={!sim.officialPrediction}
+              {dirty && (
+                <Button onClick={() => { onUpdate(local); setDirty(false) }} className="w-full">
+                  <Save className="w-4 h-4" /> Guardar predicción
+                </Button>
+              )}
+              <Button
+                onClick={() => { onUpdate({ ...local, isLocked: true }); setDirty(false) }}
+                disabled={!local.officialPrediction}
                 className="w-full bg-amber-900/40 text-amber-300 hover:bg-amber-900/60 border border-amber-900">
                 <Lock className="w-4 h-4" /> Bloquear predicción
               </Button>

@@ -70,10 +70,16 @@ export default function SimulationPage({ params }: { params: { id: string; simId
   async function updateSim(patch: Partial<Sim>) {
     if (!sim) return
     setSaving(true)
-    const updated = await simulationsService.update(sim.id, patch as never)
-    setSim(updated as unknown as Sim)
-    setSaving(false)
-    showToast('Guardado ✓')
+    try {
+      const { data } = await simulationsService.update(sim.id, patch as never)
+      setSim(data as unknown as Sim)
+      showToast('Guardado ✓')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar'
+      showToast(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function saveEntry(entry: Parameters<typeof DiarioTab>[0]['onSave'] extends (e: infer E) => unknown ? E : never) {
@@ -188,8 +194,7 @@ export default function SimulationPage({ params }: { params: { id: string; simId
         {tab === 'modelo'     && <ModeloTab     sim={simSafe} onUpdate={updateSim} />}
         {tab === 'diario'     && <DiarioTab     sim={simSafe} climateDays={climateDays} onSave={saveEntry} />}
         {tab === 'prediccion' && <PrediccionTab sim={simSafe} climateDays={climateDays}
-            onUpdate={updateSim}
-            onLock={() => updateSim({ isLocked: true }).then(() => showToast('Predicción bloqueada ✓'))} />}
+            onUpdate={updateSim} />}
         {tab === 'ayuda'      && <AyudaTab      sim={simSafe} />}
       </main>
     </div>

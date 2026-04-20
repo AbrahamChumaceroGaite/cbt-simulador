@@ -87,20 +87,21 @@ export function AdminMonitoreoSection() {
         </div>
       )}
 
-      {groups.length > 1 && (
-        <div className="flex gap-2 flex-wrap">
-          {['todos', ...groups].map(g => (
-            <button key={g} onClick={() => setFilter(g)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                filter === g
-                  ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50'
-                  : 'bg-zinc-800/60 text-zinc-400 border border-zinc-700/40 hover:bg-zinc-700/50'
-              }`}>
-              {g === 'todos' ? 'Todos los grupos' : g}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex gap-2 flex-wrap">
+        {['todos', ...groups].map(g => (
+          <button key={g} onClick={() => setFilter(g)}
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+              filter === g
+                ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50'
+                : 'bg-zinc-800/60 text-zinc-400 border border-zinc-700/40 hover:bg-zinc-700/50'
+            }`}>
+            {g === 'todos' ? 'Todos los grupos' : g}
+          </button>
+        ))}
+        {groups.length === 0 && (
+          <span className="text-xs text-zinc-600">Sin datos aún — esperando lecturas del sensor</span>
+        )}
+      </div>
 
       <SensorChart readings={filtered} />
     </div>

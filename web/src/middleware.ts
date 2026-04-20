@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/api/members') ||
       pathname.startsWith('/api/groups') ||
       pathname.startsWith('/api/climate') ||
+      pathname.startsWith('/api/monitoreo') ||
       pathname.startsWith('/api/auth')
     if (!allowed) {
       return NextResponse.redirect(new URL(`/grupo/${session.groupId}`, request.url))

@@ -16,6 +16,7 @@ export function GrupoMonitoreoSection() {
   useEffect(() => {
     monitoreoService.get()
       .then(setData)
+      .catch(() => {/* silently ignore — sensor may not have data yet */})
       .finally(() => setLoading(false))
   }, [])
 

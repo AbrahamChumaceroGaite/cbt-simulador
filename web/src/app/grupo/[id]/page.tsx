@@ -18,6 +18,7 @@ type Group = GroupResponse
 export default function GroupPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [group, setGroup]       = useState<Group | null>(null)
+  const [isAdmin, setIsAdmin]   = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [simName, setSimName]   = useState('')
   const [creating, setCreating] = useState(false)
@@ -27,6 +28,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
   const load = () => groupsService.getById(params.id).then(setGroup)
   useEffect(() => { load() }, [])
+  useEffect(() => { authService.me().then(s => setIsAdmin(s.role === 'admin')).catch(() => {}) }, [])
 
   // Refresh when admin records a new entry for this group's simulations
   useWsEvent(WS.ENTRY_SAVED, ({ groupId }) => {
@@ -120,11 +122,13 @@ export default function GroupPage({ params }: { params: { id: string } }) {
       </div>
 
       <header className="fixed top-3 left-3 right-3 z-20 rounded-2xl border border-zinc-800/70 bg-zinc-950/90 backdrop-blur-md shadow-xl shadow-black/40 px-4 py-3 flex items-center gap-3">
-        <Tooltip content="Volver al panel" side="bottom">
-          <button onClick={() => router.push('/admin')} className="text-zinc-500 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        </Tooltip>
+        {isAdmin && (
+          <Tooltip content="Volver al panel" side="bottom">
+            <button onClick={() => router.push('/admin')} className="text-zinc-500 hover:text-white transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </Tooltip>
+        )}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-emerald-950 border border-emerald-900 flex items-center justify-center flex-shrink-0">
             <Sprout className="w-3.5 h-3.5 text-emerald-400" />

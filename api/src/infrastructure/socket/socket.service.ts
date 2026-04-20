@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WebSocket }          from 'ws'
 import { WS_EVENTS }          from './socket.events'
+import type { SensorReading } from '@simulador/shared'
 
 @Injectable()
 export class SocketService {
@@ -40,6 +41,15 @@ export class SocketService {
   simulationUpdated(groupId: string, payload: { simulationId: string; isLocked?: boolean }): void {
     this.toAll(this.admins, WS_EVENTS.SIMULATION_UPDATED, payload)
     this.toOne(this.groups, groupId, WS_EVENTS.SIMULATION_UPDATED, payload)
+  }
+
+  // Fired on each new ThingSpeak reading — admins receive all, each group receives only their reading
+  monitoreoUpdateAdmins(reading: SensorReading): void {
+    this.toAll(this.admins, WS_EVENTS.MONITOREO_UPDATE, { reading })
+  }
+
+  monitoreoUpdateGroup(groupId: string, reading: SensorReading): void {
+    this.toOne(this.groups, groupId, WS_EVENTS.MONITOREO_UPDATE, { reading })
   }
 
   private send(client: WebSocket, event: string, data: unknown): void {

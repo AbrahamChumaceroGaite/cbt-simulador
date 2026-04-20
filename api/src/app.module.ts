@@ -12,6 +12,7 @@ import { EntryModule }      from './modules/entry/entry.module'
 import { ClimateModule }    from './modules/climate/climate.module'
 import { AnalyticsModule }  from './modules/analytics/analytics.module'
 import { BackupModule }     from './modules/backup/backup.module'
+import { MonitoreoModule } from './modules/monitoreo/monitoreo.module'
 import { SocketModule }    from './infrastructure/socket/socket.module'
 
 @Module({
@@ -19,7 +20,7 @@ import { SocketModule }    from './infrastructure/socket/socket.module'
   imports: [
     CqrsModule.forRoot(),
     AuthModule, GroupModule, MemberModule, SimulationModule,
-    EntryModule, ClimateModule, AnalyticsModule, BackupModule,
+    EntryModule, ClimateModule, AnalyticsModule, BackupModule, MonitoreoModule,
     SocketModule,
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: TransformInterceptor }],

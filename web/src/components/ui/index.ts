@@ -16,3 +16,4 @@ export { Combobox }                                                  from './com
 export type { ComboboxOption }                                       from './combobox'
 export { Skeleton }                                                  from './skeleton'
 export { Checkbox }                                                  from './checkbox'
+export { SensorChart }                                               from './sensor-chart'

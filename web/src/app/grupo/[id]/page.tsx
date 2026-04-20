@@ -7,8 +7,9 @@ import { Button, Modal, Input, Label, EmptyState, Tooltip, Pagination } from '@/
 import { groupsService }      from '@/services/groups.service'
 import { simulationsService } from '@/services/simulations.service'
 import { authService }        from '@/services/auth.service'
-import { SimCard }        from '@/features/grupo/SimCard'
-import { MembersSection } from '@/features/grupo/MembersSection'
+import { SimCard }                from '@/features/grupo/SimCard'
+import { MembersSection }        from '@/features/grupo/MembersSection'
+import { GrupoMonitoreoSection } from '@/features/grupo/GrupoMonitoreoSection'
 import { useWsEvent }     from '@/hooks/useWsEvent'
 import { WS }             from '@/ws/events'
 
@@ -149,6 +150,11 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
       <main className="max-w-2xl mx-auto px-4 pt-20 pb-8 space-y-6">
         <MembersSection groupId={params.id} />
+
+        <section className="space-y-3">
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Monitoreo</p>
+          <GrupoMonitoreoSection />
+        </section>
 
         {demoSims.length > 0 && (
           <section className="space-y-3">

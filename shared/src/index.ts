@@ -8,6 +8,7 @@ export type { SimulationResponse, SimulationInput, SimulationUpdateInput } from 
 export type { EntryResponse, EntryInput }                  from './types/entry.types'
 export type { ClimateDay, ClimateSummary, ClimateResponse, WeatherDay } from './types/climate.types'
 export type { GroupStatResponse }                          from './types/analytics.types'
+export type { SensorReading, MonitoreoResponse }           from './types/monitoreo.types'
 
 // Growth model
 export type { GrowthParams, DayConditions, ProjPoint }     from './lib/growth'

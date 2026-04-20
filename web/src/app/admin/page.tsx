@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sprout, LogOut, Users, FlaskConical, BookOpen, BarChart3, Shield } from 'lucide-react'
+import { Sprout, LogOut, Users, FlaskConical, BookOpen, BarChart3, Shield, Activity } from 'lucide-react'
 import type { GroupResponse, GroupStatResponse, SimulationResponse } from '@simulador/shared'
 import { Toast, Tooltip } from '@/components/ui'
 import { FloatingNav, LogoutModal } from '@/components/shared'
@@ -15,14 +15,16 @@ import { AdminAnalyticsSection }   from '@/features/admin/AdminAnalyticsSection'
 import { AdminSimulationsSection } from '@/features/admin/AdminSimulationsSection'
 import { AdminEntriesSection }     from '@/features/admin/AdminEntriesSection'
 import { AdminSection }            from '@/features/admin/AdminSection'
+import { AdminMonitoreoSection }  from '@/features/admin/AdminMonitoreoSection'
 
-type Tab = 'grupos' | 'simulaciones' | 'sesiones' | 'analytics' | 'admin'
+type Tab = 'grupos' | 'simulaciones' | 'sesiones' | 'analytics' | 'monitoreo' | 'admin'
 
 const TABS: NavTab<Tab>[] = [
   { id: 'grupos',       label: 'Grupos',       icon: Users        },
   { id: 'simulaciones', label: 'Simulaciones', icon: FlaskConical },
   { id: 'sesiones',     label: 'Sesiones',     icon: BookOpen     },
   { id: 'analytics',   label: 'Analytics',    icon: BarChart3    },
+  { id: 'monitoreo',   label: 'Monitoreo',    icon: Activity     },
   { id: 'admin',       label: 'Admin',        icon: Shield       },
 ]
 
@@ -105,6 +107,7 @@ export default function AdminPage() {
           <p className="text-sm text-zinc-600 text-center py-8">No hay simulaciones todavía.</p>
         )}
         {tab === 'analytics'   && <AdminAnalyticsSection stats={stats} groups={groups} simulations={simulations} />}
+        {tab === 'monitoreo'   && <AdminMonitoreoSection />}
         {tab === 'admin'       && <AdminSection showToast={showToast} reloadAll={load} />}
       </main>
 

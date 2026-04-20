@@ -2,12 +2,34 @@
 import { useEffect, useMemo, useState }     from 'react'
 import { Thermometer, Droplets, RefreshCw } from 'lucide-react'
 import type { SensorReading, MonitoreoResponse } from '@simulador/shared'
-import { SensorChart }       from '@/components/ui'
+import { SensorChart, TimeRangeSlider }  from '@/components/ui'
 import { monitoreoService }  from '@/services/monitoreo.service'
 import { useWsEvent }        from '@/hooks/useWsEvent'
 import { WS }                from '@/ws/events'
 
 const MAX_CACHE = 200
+
+function computeTimeRange(readings: Record<string, SensorReading[]>) {
+  const all = Object.values(readings).flat()
+  if (all.length < 2) return null
+  const times = all.map(r => new Date(r.timestamp).getTime()).sort((a, b) => a - b)
+  return { min: times[0], max: times[times.length - 1] }
+}
+
+function applyRange(
+  readings: Record<string, SensorReading[]>,
+  from: number, to: number,
+  tr: { min: number; max: number } | null,
+): Record<string, SensorReading[]> {
+  if (!tr) return readings
+  const span = tr.max - tr.min
+  const lo = tr.min + (from / 100) * span
+  const hi = tr.min + (to   / 100) * span
+  const out: Record<string, SensorReading[]> = {}
+  for (const [g, arr] of Object.entries(readings))
+    out[g] = arr.filter(r => { const t = new Date(r.timestamp).getTime(); return t >= lo && t <= hi })
+  return out
+}
 
 function LatestCard({ group, reading }: { group: string; reading: SensorReading }) {
   return (
@@ -21,21 +43,21 @@ function LatestCard({ group, reading }: { group: string; reading: SensorReading 
           <Droplets className="w-3.5 h-3.5" /> {reading.humidity.toFixed(1)} %
         </span>
       </div>
-      <p className="text-[10px] text-zinc-600">
-        {new Date(reading.timestamp).toLocaleString('es-BO')}
-      </p>
+      <p className="text-[10px] text-zinc-600">{new Date(reading.timestamp).toLocaleString('es-BO')}</p>
     </div>
   )
 }
 
 export function AdminMonitoreoSection() {
-  const [data, setData]         = useState<MonitoreoResponse>({ readings: {}, lastUpdated: null })
-  const [filter, setFilter]     = useState<string>('todos')
-  const [loading, setLoading]   = useState(true)
+  const [data, setData]       = useState<MonitoreoResponse>({ readings: {}, lastUpdated: null })
+  const [filter, setFilter]   = useState<string>('todos')
+  const [loading, setLoading] = useState(true)
+  const [from, setFrom]       = useState(0)
+  const [to, setTo]           = useState(100)
 
   useEffect(() => {
     monitoreoService.get()
-      .then(setData)
+      .then(d => { setData(d); setFrom(0); setTo(100) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -44,6 +66,7 @@ export function AdminMonitoreoSection() {
       const arr = [...(prev.readings[reading.group] ?? []), reading].slice(-MAX_CACHE)
       return { readings: { ...prev.readings, [reading.group]: arr }, lastUpdated: reading.timestamp }
     })
+    setTo(100)
   }, [])
 
   const groups   = Object.keys(data.readings)
@@ -52,6 +75,9 @@ export function AdminMonitoreoSection() {
     const arr = data.readings[filter]
     return arr ? { [filter]: arr } : {}
   }, [data.readings, filter])
+
+  const timeRange = useMemo(() => computeTimeRange(filtered), [filtered])
+  const visible   = useMemo(() => applyRange(filtered, from, to, timeRange), [filtered, from, to, timeRange])
 
   const latestPerGroup = useMemo(() =>
     Object.entries(data.readings).map(([g, arr]) => ({ group: g, reading: arr[arr.length - 1] }))
@@ -89,7 +115,7 @@ export function AdminMonitoreoSection() {
 
       <div className="flex gap-2 flex-wrap">
         {['todos', ...groups].map(g => (
-          <button key={g} onClick={() => setFilter(g)}
+          <button key={g} onClick={() => { setFilter(g); setFrom(0); setTo(100) }}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
               filter === g
                 ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50'
@@ -103,7 +129,9 @@ export function AdminMonitoreoSection() {
         )}
       </div>
 
-      <SensorChart readings={filtered} />
+      <TimeRangeSlider timeRange={timeRange} from={from} to={to} onFromChange={setFrom} onToChange={setTo} />
+
+      <SensorChart readings={visible} />
     </div>
   )
 }

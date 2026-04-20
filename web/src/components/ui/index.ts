@@ -17,3 +17,4 @@ export type { ComboboxOption }                                       from './com
 export { Skeleton }                                                  from './skeleton'
 export { Checkbox }                                                  from './checkbox'
 export { SensorChart }                                               from './sensor-chart'
+export { TimeRangeSlider }                                           from './time-range-slider'

@@ -1,36 +1,44 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Sprout, FlaskConical, ArrowLeft, Copy, CheckCheck, LogOut } from 'lucide-react'
+import { Plus, Sprout, FlaskConical, ArrowLeft, Copy, CheckCheck, LogOut, Activity, Users } from 'lucide-react'
 import type { GroupResponse } from '@simulador/shared'
 import { Button, Modal, Input, Label, EmptyState, Tooltip, Pagination } from '@/components/ui'
-import { groupsService }      from '@/services/groups.service'
-import { simulationsService } from '@/services/simulations.service'
-import { authService }        from '@/services/auth.service'
+import { FloatingNav }            from '@/components/shared'
+import type { NavTab }            from '@/components/shared'
+import { groupsService }          from '@/services/groups.service'
+import { simulationsService }     from '@/services/simulations.service'
+import { authService }            from '@/services/auth.service'
 import { SimCard }                from '@/features/grupo/SimCard'
-import { MembersSection }        from '@/features/grupo/MembersSection'
-import { GrupoMonitoreoSection } from '@/features/grupo/GrupoMonitoreoSection'
-import { useWsEvent }     from '@/hooks/useWsEvent'
-import { WS }             from '@/ws/events'
+import { MembersSection }         from '@/features/grupo/MembersSection'
+import { GrupoMonitoreoSection }  from '@/features/grupo/GrupoMonitoreoSection'
+import { useWsEvent }             from '@/hooks/useWsEvent'
+import { WS }                     from '@/ws/events'
 
+type Tab   = 'sesiones' | 'monitoreo'
 type Group = GroupResponse
+
+const TABS: NavTab<Tab>[] = [
+  { id: 'sesiones',   label: 'Sesiones',   icon: FlaskConical },
+  { id: 'monitoreo',  label: 'Monitoreo',  icon: Activity     },
+]
 
 export default function GroupPage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const [group, setGroup]       = useState<Group | null>(null)
-  const [isAdmin, setIsAdmin]   = useState(false)
+  const [group, setGroup]           = useState<Group | null>(null)
+  const [tab, setTab]               = useState<Tab>('sesiones')
+  const [isAdmin, setIsAdmin]       = useState(false)
   const [showCreate, setShowCreate] = useState(false)
-  const [simName, setSimName]   = useState('')
-  const [creating, setCreating] = useState(false)
-  const [copied, setCopied]     = useState(false)
-  const [simPage, setSimPage]   = useState(0)
+  const [simName, setSimName]       = useState('')
+  const [creating, setCreating]     = useState(false)
+  const [copied, setCopied]         = useState(false)
+  const [simPage, setSimPage]       = useState(0)
   const [simPageSize, setSimPageSize] = useState(10)
 
   const load = () => groupsService.getById(params.id).then(setGroup)
   useEffect(() => { load() }, [])
   useEffect(() => { authService.me().then(s => setIsAdmin(s.role === 'admin')).catch(() => {}) }, [])
 
-  // Refresh when admin records a new entry for this group's simulations
   useWsEvent(WS.ENTRY_SAVED, ({ groupId }) => {
     if (groupId === params.id) load()
   }, [params.id])
@@ -63,7 +71,6 @@ export default function GroupPage({ params }: { params: { id: string } }) {
         <div className="blob blob-1" /><div className="blob blob-2" /><div className="blob blob-3" />
       </div>
       <div className="fixed top-3 left-3 right-3 z-20 rounded-2xl border border-zinc-800/70 bg-zinc-950/90 backdrop-blur-md px-4 py-3 flex items-center gap-3">
-        <div className="w-5 h-5 rounded bg-zinc-800 animate-pulse" />
         <div className="w-7 h-7 rounded-lg bg-zinc-800 animate-pulse" />
         <div className="flex-1 space-y-1.5">
           <div className="h-3.5 w-32 rounded bg-zinc-800 animate-pulse" />
@@ -72,41 +79,8 @@ export default function GroupPage({ params }: { params: { id: string } }) {
         <div className="h-7 w-16 rounded-lg bg-zinc-800 animate-pulse" />
         <div className="h-8 w-8 rounded-lg bg-zinc-800 animate-pulse" />
       </div>
-      <main className="max-w-2xl mx-auto px-4 pt-20 pb-8 space-y-6">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="h-3 w-24 rounded bg-zinc-800 animate-pulse" />
-            <div className="h-7 w-20 rounded-lg bg-zinc-800 animate-pulse" />
-          </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 space-y-2">
-            {[1,2,3].map(i => (
-              <div key={i} className="flex items-center gap-3 py-2">
-                <div className="w-7 h-7 rounded-full bg-zinc-800 animate-pulse" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3 w-28 rounded bg-zinc-800 animate-pulse" />
-                  <div className="h-2.5 w-16 rounded bg-zinc-800/60 animate-pulse" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="h-3 w-32 rounded bg-zinc-800 animate-pulse" />
-            <div className="h-7 w-20 rounded-lg bg-zinc-800 animate-pulse" />
-          </div>
-          {[1,2].map(i => (
-            <div key={i} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-zinc-800 animate-pulse" />
-                <div className="flex-1 space-y-1.5">
-                  <div className="h-3.5 w-40 rounded bg-zinc-800 animate-pulse" />
-                  <div className="h-2.5 w-24 rounded bg-zinc-800/60 animate-pulse" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <main className="max-w-2xl mx-auto px-4 pt-20 pb-28 space-y-6">
+        {[1,2,3].map(i => <div key={i} className="h-20 rounded-xl bg-zinc-800/60 animate-pulse" />)}
       </main>
     </div>
   )
@@ -152,53 +126,56 @@ export default function GroupPage({ params }: { params: { id: string } }) {
         </Tooltip>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-20 pb-8 space-y-6">
-        <MembersSection groupId={params.id} />
+      <main className="max-w-2xl mx-auto px-4 pt-20 pb-28 page-wrapper space-y-6">
+        {tab === 'sesiones' && (
+          <>
+            <MembersSection groupId={params.id} />
 
-        <section className="space-y-3">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Monitoreo</p>
-          <GrupoMonitoreoSection />
-        </section>
+            {demoSims.length > 0 && (
+              <section className="space-y-3">
+                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Tutorial</p>
+                {demoSims.map(sim => <SimCard key={sim.id} sim={sim} groupId={group.id} />)}
+              </section>
+            )}
 
-        {demoSims.length > 0 && (
-          <section className="space-y-3">
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Tutorial</p>
-            {demoSims.map(sim => <SimCard key={sim.id} sim={sim} groupId={group.id} />)}
-          </section>
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                  Mis simulaciones {realSims.length > 0 && `· ${realSims.length}`}
+                </p>
+                <Button size="sm" onClick={() => setShowCreate(true)}>
+                  <Plus className="w-3.5 h-3.5" /> Nueva
+                </Button>
+              </div>
+
+              {realSims.length === 0 ? (
+                <EmptyState
+                  icon={<FlaskConical className="w-10 h-10" />}
+                  title="Sin simulaciones todavía"
+                  description="Crea tu primera simulación y empieza a predecir el crecimiento de tu planta."
+                  action={<Button size="sm" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> Crear simulación</Button>}
+                />
+              ) : (
+                <>
+                  {realSims.slice(simPage * simPageSize, (simPage + 1) * simPageSize).map(sim => (
+                    <SimCard key={sim.id} sim={sim} groupId={group.id} />
+                  ))}
+                  <Pagination page={simPage} totalItems={realSims.length} pageSize={simPageSize}
+                    onPageSizeChange={s => { setSimPageSize(s); setSimPage(0) }} onChange={setSimPage} />
+                </>
+              )}
+            </section>
+          </>
         )}
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-              Mis simulaciones {realSims.length > 0 && `· ${realSims.length}`}
-            </p>
-            <Button size="sm" onClick={() => setShowCreate(true)}>
-              <Plus className="w-3.5 h-3.5" /> Nueva
-            </Button>
-          </div>
-
-          {realSims.length === 0 ? (
-            <EmptyState
-              icon={<FlaskConical className="w-10 h-10" />}
-              title="Sin simulaciones todavía"
-              description="Crea tu primera simulación y empieza a predecir el crecimiento de tu planta."
-              action={<Button size="sm" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> Crear simulación</Button>}
-            />
-          ) : (
-            <>
-              {realSims.slice(simPage * simPageSize, (simPage + 1) * simPageSize).map(sim => (
-                <SimCard key={sim.id} sim={sim} groupId={group.id} />
-              ))}
-              <Pagination page={simPage} totalItems={realSims.length} pageSize={simPageSize}
-                onPageSizeChange={s => { setSimPageSize(s); setSimPage(0) }} onChange={setSimPage} />
-            </>
-          )}
-        </section>
+        {tab === 'monitoreo' && <GrupoMonitoreoSection />}
       </main>
 
       <footer className="relative z-10 text-center py-6 text-zinc-700 text-xs">
         Ing. Abraham CG &mdash; 2026 · All rights reserved
       </footer>
+
+      <FloatingNav tabs={TABS} active={tab} onTabChange={setTab} />
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nueva simulación">
         <div className="space-y-4">
@@ -210,9 +187,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
           </div>
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1">Cancelar</Button>
-            <Button onClick={createSim} disabled={creating || !simName.trim()} loading={creating} className="flex-1">
-              Crear
-            </Button>
+            <Button onClick={createSim} disabled={creating || !simName.trim()} loading={creating} className="flex-1">Crear</Button>
           </div>
         </div>
       </Modal>
